@@ -1,11 +1,6 @@
 // magnet:?xt=urn:btih:6B46C2FCDD1AE65626FF9650065ADBE09A1D7CA8&dn=Example+File&tr=http://tracker.example.com/announce
-
-
 // 磁力连接解析器
 // 对磁力连接进行解析，使用状态机的方式来进行借些各个参数
-
-
-
 // 状态机枚举的状态转换
 #include <string> 
 #include <map>
