@@ -156,6 +156,9 @@ struct MagnetInfo {
 
 #### 3.5.3 状态机设计
 ```cpp
+
+
+
 enum class PeerState {
     CONNECTING,     // 正在连接
     HANDSHAKING,    // 握手中

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <asio.hpp>
 #include <iostream>
 #include <array>
@@ -12,6 +12,7 @@ private:
     asio::ip::udp::socket socket_;
     std::array<char, 1024> receive_buffer_;
     asio::ip::udp::endpoint sender_endpoint_;
+    std::string send_buffer_;  // 添加发送缓冲区
 
 public:
     UdpClient(asio::io_context& io_context)
@@ -27,7 +28,10 @@ public:
         auto endpoints = resolver.resolve(host, std::to_string(port));
         auto target_endpoint = *endpoints.begin();
 
-        socket_.async_send_to(asio::buffer(message), target_endpoint,[this](const asio::error_code& ec, std::size_t bytes_sent)
+        // 将消息复制到成员变量以确保生命周期
+        send_buffer_ = message;
+        
+        socket_.async_send_to(asio::buffer(send_buffer_), target_endpoint,[this](const asio::error_code& ec, std::size_t bytes_sent)
                               {
             handle_send(ec,bytes_sent);
         }
@@ -46,12 +50,12 @@ public:
 
 
 private:
-    void handle_send(const asio::error_code& ec, std::size_t bytes_sendt)
+    void handle_send(const asio::error_code& ec, std::size_t bytes_sent)
     {
         if(!ec) {
-            std::cout<<"发送成功： "<< bytes_sendt  <<" 字节"<<std::endl;
+            std::cout << "Send successful: " << bytes_sent << " bytes" << std::endl;
         } else {
-            std::cout<<"发送失败: "<<ec.message() <<std::endl;
+            std::cout << "Send failed: " << ec.message() << std::endl;
         }
     }
 
@@ -60,13 +64,13 @@ private:
         if (!ec)
         {
             std::string message(receive_buffer_.data(), bytes_received);
-            std::cout<<"收到来自： "<<sender_endpoint_<<" 的消息"<<message << std::endl;
+            std::cout << "Received from " << sender_endpoint_ << ": " << message << std::endl;
 
             start_receive();
         }
         else
         {
-            std::cout<<"接受失败 "<<ec.message()<<std::endl;
+            std::cout << "Receive failed: " << ec.message() << std::endl;
         }
     }
 };

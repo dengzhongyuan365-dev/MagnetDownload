@@ -10,6 +10,7 @@ add_executable(asio_experiments
     04_lambda_lifetime.cpp
     05_udp_basic.h
     05_udp_basic.cpp
+    06_multithreading.h
 
     # 当你创建实验源文件时，在这里添加
     # 01_hello_asio.cpp

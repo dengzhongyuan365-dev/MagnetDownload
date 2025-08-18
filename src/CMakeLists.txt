@@ -2,7 +2,7 @@
 # 当前为占位文件，等实验完成后再实现具体的项目模块
 
 message(STATUS "Configuring MagnetDownload main project...")
-
+add_subdirectory(core)
 # TODO: 当开始实现主项目时，在这里添加以下内容：
 #
 # # 核心库

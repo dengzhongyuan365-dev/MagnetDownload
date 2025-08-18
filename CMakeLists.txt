@@ -54,13 +54,11 @@ option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_MAIN_PROJECT "Build main MagnetDownload project" OFF)
 
 # 添加子目录
-if(BUILD_EXPERIMENTS)
-    add_subdirectory(experiments)
-endif()
+# if(BUILD_EXPERIMENTS)
+#     add_subdirectory(experiments)
+# endif()
 
-if(BUILD_MAIN_PROJECT)
-    add_subdirectory(src)
-endif()
+add_subdirectory(src)
 
 if(BUILD_TESTS)
     enable_testing()
