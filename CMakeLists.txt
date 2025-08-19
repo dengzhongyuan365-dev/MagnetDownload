@@ -51,14 +51,18 @@ endif()
 # 项目选项
 option(BUILD_EXPERIMENTS "Build Asio learning experiments" ON)
 option(BUILD_TESTS "Build unit tests" ON)
-option(BUILD_MAIN_PROJECT "Build main MagnetDownload project" OFF)
+option(BUILD_MAIN_PROJECT "Build main MagnetDownload project" ON)
+option(BUILD_CONSOLE_UI "Build console user interface" ON)
+option(BUILD_QT_UI "Build Qt graphical user interface" OFF)
 
 # 添加子目录
 # if(BUILD_EXPERIMENTS)
 #     add_subdirectory(experiments)
 # endif()
 
-add_subdirectory(src)
+if(BUILD_MAIN_PROJECT)
+    add_subdirectory(src)
+endif()
 
 if(BUILD_TESTS)
     enable_testing()
