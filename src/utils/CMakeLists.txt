@@ -5,9 +5,9 @@ message(STATUS "Configuring Utils Library...")
 
 add_library(magnet_utils STATIC
     logger.cpp
-    # config.cpp                    # 你将要实现的
-    # string_utils.cpp              # 你将要实现的  
-    # hash_utils.cpp                # 你将要实现的
+    # config.cpp
+    # string_utils.cpp
+    # hash_utils.cpp
 )
 
 target_include_directories(magnet_utils
@@ -18,10 +18,9 @@ target_include_directories(magnet_utils
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# 只依赖系统库，零业务逻辑
 target_link_libraries(magnet_utils
     PRIVATE  
-        Threads::Threads            # Logger需要线程支持
+        Threads::Threads
 )
 
 # 设置编译特性
