@@ -55,6 +55,33 @@ option(BUILD_MAIN_PROJECT "Build main MagnetDownload project" ON)
 option(BUILD_CONSOLE_UI "Build console user interface" ON)
 option(BUILD_QT_UI "Build Qt graphical user interface" OFF)
 
+# Google Test 配置
+if(BUILD_TESTS)
+    # 方法1：使用本地源码（推荐，避免网络问题）
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
+        # 防止 Google Test 覆盖父项目的编译器/链接器设置
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        
+        # 添加 Google Test 子目录
+        add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
+        
+        message(STATUS "Google Test found at: ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest")
+    else()
+        # 方法2：使用系统安装的 Google Test
+        find_package(GTest QUIET)
+        if(GTest_FOUND)
+            message(STATUS "Using system Google Test")
+        else()
+            message(FATAL_ERROR 
+                "Google Test not found!\n"
+                "Please install Google Test:\n"
+                "  方法1（推荐）: cd 3rd && git clone https://github.com/google/googletest.git\n"
+                "  方法2: sudo apt install libgtest-dev libgmock-dev\n"
+            )
+        endif()
+    endif()
+endif()
+
 # 添加子目录
 # if(BUILD_EXPERIMENTS)
 #     add_subdirectory(experiments)
