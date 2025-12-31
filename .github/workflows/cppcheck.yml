@@ -1,0 +1,53 @@
+name: Cppcheck
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+    
+    - name: Run cppcheck
+      run: |
+        cppcheck \
+          --enable=warning,style,performance,portability \
+          --error-exitcode=1 \
+          --suppress=missingIncludeSystem \
+          --suppress=unmatchedSuppression \
+          --suppress=unusedFunction \
+          --suppress=noExplicitConstructor \
+          --inline-suppr \
+          -I include \
+          -I 3rd/asio/include \
+          --std=c++17 \
+          --force \
+          --xml \
+          --xml-version=2 \
+          src/ include/ 2> cppcheck-report.xml
+    
+    - name: Generate HTML report
+      if: always()
+      run: |
+        sudo apt-get install -y cppcheck-htmlreport
+        cppcheck-htmlreport --file=cppcheck-report.xml --report-dir=cppcheck-html --source-dir=.
+    
+    - name: Upload cppcheck report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: cppcheck-report
+        path: |
+          cppcheck-report.xml
+          cppcheck-html/

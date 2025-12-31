@@ -145,7 +145,7 @@ jobs:
           echo "No C++ files found to check"
         fi
 
-  # 静态代码分析
+  # 静态代码分析 (clang-tidy)
   static-analysis:
     runs-on: ubuntu-latest
     steps:
