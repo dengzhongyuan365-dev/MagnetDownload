@@ -4,7 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <magnet/protocols/magnet_parser.h>
+#include <magnet/protocols/magnet_uri_parser.h>  // 与实际文件名一致
 
 using namespace magnet::protocols;
 

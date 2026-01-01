@@ -1,7 +1,7 @@
 // MagnetDownload - Magnet URI Parser Implementation
 // 占位文件 - 你将要实现磁力链接解析器
 
-#include "magnet_parser.h"
+#include "../../include/magnet/protocols/magnet_uri_parser.h"
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -43,7 +43,7 @@ namespace magnet::protocols {
             return 0xFF; // 无效字符标记
         }
 
-        /**
+        /** jh
          * @brief URL解码函数
          * @param str URL编码的字符串
          * @return 解码后的字符串
@@ -195,17 +195,17 @@ namespace magnet::protocols {
          * @return 解析结果，失败返回std::nullopt
          */
         static std::optional<uint64_t> parseUint64(const std::string& str) {
-            try {
-                uint64_t value;
-                auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+            if (str.empty()) {
+                return std::nullopt;
+            }
 
-                if (ec == std::errc() && ptr == str.data() + str.size()) {
-                    return value;
-                }
+            uint64_t value;
+            auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+
+            if (ec == std::errc() && ptr == str.data() + str.size()) {
+                return value;
             }
-            catch (...) {
-                // 转换失败
-            }
+
             return std::nullopt;
         }
 
@@ -256,20 +256,14 @@ namespace magnet::protocols {
             bits += 5;
 
             if (bits >= 8) {
-                bytes[byteIndex++] = static_cast<uint8_t>(buffer >> (bits - 8));
+                bytes[byteIndex++] = static_cast<uint8_t>((buffer >> (bits - 8)) & 0xFF);
                 bits -= 8;
-                buffer &= (1 << bits) - 1;
             }
         }
 
-        // 处理剩余的位
-        if (bits > 0 && byteIndex < HASHSIZE) {
-            bytes[byteIndex++] = static_cast<uint8_t>(buffer << (8 - bits));
-        }
-
-        // 确保填充到20字节
-        while (byteIndex < HASHSIZE) {
-            bytes[byteIndex++] = 0;
+        // 32个Base32字符应该刚好解码为20字节，不应该有剩余位
+        if (bits != 0 || byteIndex != HASHSIZE) {
+            return std::nullopt;
         }
 
         return InfoHash(bytes);

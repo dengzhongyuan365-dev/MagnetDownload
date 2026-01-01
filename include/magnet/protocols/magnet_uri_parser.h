@@ -1,5 +1,6 @@
-#ifndef MAGNET_PARSER_H
-#define MAGNET_PARSER_H
+#ifndef MAGNET_URI_PARSER_H
+#define MAGNET_URI_PARSER_H
+
 
 #pragma once
 
@@ -113,4 +114,4 @@ namespace magnet::protocols {
 
 } // namespace magnet::protocols
 
-#endif // MAGNET_PARSER_H
+#endif // MAGNET_URI_PARSER_H
