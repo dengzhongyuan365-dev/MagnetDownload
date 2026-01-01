@@ -48,6 +48,20 @@ else()
     message(FATAL_ERROR "Asio not found! Please ensure Asio source is available in 3rd/asio/include")
 endif()
 
+# ========== 添加磁力链接解析器库 ==========
+add_library(magnet_parser STATIC
+    src/magnet_uri_parser.cpp
+)
+
+# 设置包含目录
+target_include_directories(magnet_parser PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# 链接依赖（当前不需要额外依赖）
+# target_link_libraries(magnet_parser PRIVATE asio)
+# ==========================================
+
 # 项目选项
 option(BUILD_EXPERIMENTS "Build Asio learning experiments" ON)
 option(BUILD_TESTS "Build unit tests" ON)
