@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 project(MagnetDownload VERSION 1.0.0 LANGUAGES CXX)
 
+# 新增启用vcpkg
+if(DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+    message(STATUS "Using vcpkg from: $ENV{VCPKG_ROOT}")
+else()
+    message(WARNING "VCPKG_ROOT not set, vcpkg will not be used")
+endif()
+
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,6 +57,20 @@ else()
     message(FATAL_ERROR "Asio not found! Please ensure Asio source is available in 3rd/asio/include")
 endif()
 
+# ========== 添加磁力链接解析器库 ==========
+add_library(magnet_parser STATIC
+    src/protocols/magnet_uri_parser.cpp
+)
+
+# 设置包含目录
+target_include_directories(magnet_parser PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# 链接依赖（当前不需要额外依赖）
+# target_link_libraries(magnet_parser PRIVATE asio)
+# ==========================================
+
 # 项目选项
 option(BUILD_EXPERIMENTS "Build Asio learning experiments" ON)
 option(BUILD_TESTS "Build unit tests" ON)
@@ -57,27 +80,30 @@ option(BUILD_QT_UI "Build Qt graphical user interface" OFF)
 
 # Google Test 配置
 if(BUILD_TESTS)
-    # 方法1：使用本地源码（推荐，避免网络问题）
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
-        # 防止 Google Test 覆盖父项目的编译器/链接器设置
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        
-        # 添加 Google Test 子目录
-        add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
-        
-        message(STATUS "Google Test found at: ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest")
+    message(STATUS "Looking for Google Test...")
+    
+    # 优先使用vcpkg安装的GTest
+    find_package(GTest QUIET)
+    
+    if(GTest_FOUND)
+        message(STATUS "Found GTest via vcpkg (v${GTest_VERSION})")
+        message(STATUS "  Include: ${GTEST_INCLUDE_DIRS}")
+        message(STATUS "  Libraries: ${GTEST_LIBRARIES}")
     else()
-        # 方法2：使用系统安装的 Google Test
-        find_package(GTest QUIET)
-        if(GTest_FOUND)
-            message(STATUS "Using system Google Test")
+        # 备用方案：使用本地源码
+        message(STATUS "GTest not found in vcpkg, checking local source...")
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
+            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+            add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
+            message(STATUS "Using local Google Test from 3rd/googletest")
         else()
-            message(FATAL_ERROR 
-                "Google Test not found!\n"
-                "Please install Google Test:\n"
-                "  方法1（推荐）: cd 3rd && git clone https://github.com/google/googletest.git\n"
-                "  方法2: sudo apt install libgtest-dev libgmock-dev\n"
+            message(WARNING 
+                "Google Test not found! Tests will be disabled.\n"
+                "Options:\n"
+                "  1. Ensure vcpkg is installed and GTest is available\n"
+                "  2. Download to 3rd/googletest: git clone https://github.com/google/googletest.git\n"
             )
+            set(BUILD_TESTS OFF)
         endif()
     endif()
 endif()
