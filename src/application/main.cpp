@@ -132,9 +132,9 @@ int main() {
     std::cout << "\n📦 其他模块状态：" << std::endl;
     
     // 其他模块占位符
-    magnet::network::placeholder_udp_client();
-    magnet::protocols::placeholder_magnet_uri_parser();
-    magnet::storage::placeholder_file_manager();
+    // magnet::network::placeholder_udp_client();
+    // magnet::protocols::placeholder_magnet_uri_parser();
+    // magnet::storage::placeholder_file_manager();
     
     std::cout << "📺 ConsoleInterface placeholder - UI modules loaded dynamically" << std::endl;
     
