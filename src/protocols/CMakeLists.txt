@@ -4,10 +4,9 @@
 message(STATUS "Configuring Protocols Library...")
 
 add_library(magnet_protocols STATIC
-    magnet_uri_parser.cpp           # 占位实现，你将要完善
-    # bittorrent_protocol.cpp       # 你将要实现的
-    # protocol_adapter.cpp          # 你将要实现的
-    # torrent_info.cpp              # 你将要实现的
+    magnet_uri_parser.cpp
+    dch_types.cpp                   
+    routing_table.cpp  
 )
 
 target_include_directories(magnet_protocols
