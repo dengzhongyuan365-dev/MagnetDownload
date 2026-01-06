@@ -1,5 +1,9 @@
+#pragma once
+
 #include <string>
 #include <vector>
+#include <cstdint>
+
 namespace magnet::network {
 
     /*

@@ -20,6 +20,17 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+elseif(MSVC)
+    # MSVC 特定编译选项
+    add_compile_definitions(
+        NOMINMAX                # 禁用 Windows.h 中的 min/max 宏，避免与 std::min/std::max 冲突
+        WIN32_LEAN_AND_MEAN     # 减少 Windows.h 包含的头文件
+        _WIN32_WINNT=0x0601     # 设置最低支持的 Windows 版本 (Windows 7)
+    )
+    # MSVC 编译警告级别和 UTF-8 支持
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /utf-8")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 endif()
 
 # 输出目录设置

@@ -16,7 +16,7 @@ target_link_libraries(magnet_tests
     PRIVATE
         GTest::gtest
         GTest::gtest_main
-        pthread  
+        Threads::Threads
 )
 
 # 包含目录

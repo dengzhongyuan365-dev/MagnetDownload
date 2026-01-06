@@ -76,7 +76,7 @@ namespace magnet::protocols {
         std::chrono::steady_clock::time_point last_seen_;
         int failed_queries_ = 0;
 
-        DhtNode();
+        DhtNode() : port_(0), failed_queries_(0), last_seen_(std::chrono::steady_clock::now()) {}
 
         DhtNode(const NodeId& id, const std::string& ip, uint16_t port):
         id_(id),ip_(ip),port_(port),last_seen_(std::chrono::steady_clock::now()){}
@@ -216,7 +216,7 @@ namespace magnet::protocols {
     enum class DhtMessageType {
         QUERY,      // 查询 (y = "q")
         RESPONSE,   // 响应 (y = "r")
-        ERROR       // 错误 (y = "e")
+        DHT_ERROR   // 错误 (y = "e") - 注意：不能使用 ERROR，因为它是 Windows 宏
     };
 
     enum class DhtQueryType {
