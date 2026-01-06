@@ -7,7 +7,14 @@
 #include <string>
 #include <optional>
 #include <chrono>
-#include <string>
+#include <vector>
+#include <cstring>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 namespace magnet::protocols {
     class NodeId {

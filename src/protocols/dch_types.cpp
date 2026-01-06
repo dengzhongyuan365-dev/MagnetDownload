@@ -123,18 +123,19 @@ namespace magnet::protocols {
     }
 
     std::optional<CompactNodeInfo> CompactNodeInfo::fromBytes(const uint8_t* data, size_t len) {
-        if (len < s_kCompactNodeSize) 
+        if (len < s_kCompactNodeSize) {
             return std::nullopt;
-        
-            CompactNodeInfo info;
-            NodeId::ByteArray id_bytes;
+        }
 
-            std::memcpy(id_bytes.data(), data, 20);
-            info.id_ = NodeId(id_bytes);
+        CompactNodeInfo info;
+        NodeId::ByteArray id_bytes;
 
-            std::memcpy(&info.ip_, data + 20,4);
-            std::memcpy(&info.port_, data + 24, 2);
-            return info;
+        std::memcpy(id_bytes.data(), data, 20);
+        info.id_ = NodeId(id_bytes);
+
+        std::memcpy(&info.ip_, data + 20, 4);
+        std::memcpy(&info.port_, data + 24, 2);
+        return info;
     }
 
     std::vector<CompactNodeInfo> CompactNodeInfo::parseNodes(const std::string& data) {
@@ -148,7 +149,7 @@ namespace magnet::protocols {
         return nodes;
     }
 
-    std::array<uint8_t, s_kCompactNodeSize> CompactNodeInfo::toBytes() const {
+    std::array<uint8_t, CompactNodeInfo::s_kCompactNodeSize> CompactNodeInfo::toBytes() const {
         std::array<uint8_t, s_kCompactNodeSize> result;
         std::memcpy(result.data(), id_.bytes().data(), 20);
         std::memcpy(result.data() + 20, &ip_, 4);
