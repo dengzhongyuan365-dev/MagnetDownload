@@ -50,4 +50,16 @@ namespace magnet::protocols {
         }
         return 0;
     }
+
+    std::string NodeId::toHex() const {
+        static const char hex[] = "0123456789abcdef";
+        std::string result;
+        result.reserve(s_KNodeSize * 2);
+
+        for(uint8_t b : data_) {
+            result.push_back(hex[b>>4]);
+            result.push_back(hex[b & 0x0f]);
+        }
+        return result;
+    }
 };

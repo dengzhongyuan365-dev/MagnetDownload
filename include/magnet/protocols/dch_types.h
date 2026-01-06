@@ -1,9 +1,13 @@
 #pragma once
 
+#include "magnet_types.h"
+#include "../network/network_types.h"
+
 #include <array>
 #include <string>
 #include <optional>
-#include "magnet_types.h"
+#include <chrono>
+#include <string>
 
 namespace magnet::protocols {
     class NodeId {
@@ -48,10 +52,57 @@ namespace magnet::protocols {
             bool operator!=(const NodeId& other) const;
             bool operator<(const NodeId& other) const;
 
+            const ByteArray& bytes() const {return data_;}
+            ByteArray& bytes() {return data_;}
+
         private:
             ByteArray data_;
 
     };
 
+    /* 
+    *@struct DhtNode
+    *@brief DHT 网络中的节点信息
+    */
 
+    struct DhtNode {
+        NodeId id_;
+        std::string ip_;
+        uint16_t port_;
+        std::chrono::steady_clock::time_point last_seen_;
+        int failed_queries_ = 0;
+
+        DhtNode();
+
+        DhtNode(const NodeId& id, const std::string& ip, uint16_t port):
+        id_(id),ip_(ip),port_(port),last_seen_(std::chrono::steady_clock::now()){}
+
+        bool isGood() const {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now-last_seen_);
+            return elapsed.count() <15 && failed_queries_ == 0;
+        }
+
+        bool isQuestionable() const {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now - last_seen_);
+            return elapsed.count() >= 15 && failed_queries_ < 3;
+        }
+
+        bool isBad() const {
+            return failed_queries_ >= 3;
+        }
+
+        void markResponded() {
+            last_seen_ = std::chrono::steady_clock::now();
+            failed_queries_ = 0;
+        }
+        void markFailed() {
+            ++failed_queries_;
+        }
+
+        network::UdpEndpoint toEndpoint() const {
+            return network::UdpEndpoint(ip_, port_);
+        }
+    }
 };
