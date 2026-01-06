@@ -103,6 +103,10 @@ namespace magnet::protocols {
         for (const auto& bucket : buckets_)
         {
             for(const auto& node: bucket.nodes) {
+                // 过滤掉坏节点
+                if (node.isBad()) {
+                    continue;
+                }
                 NodeId dist = target.distance(node.id_);
                 candidates.emplace_back(dist, node);
             }
@@ -232,5 +236,9 @@ namespace magnet::protocols {
             }
         }
         return stats;
+    }
+
+    const NodeId& RoutingTable::localId() const {
+        return local_id_;
     }
 };

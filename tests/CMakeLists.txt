@@ -1,12 +1,14 @@
 # MagnetDownload 单元测试配置
 message(STATUS "Configuring tests...")
 
-# 创建测试可执行文件（只包含测试文件）
 add_executable(magnet_tests
     test_main.cpp
     protocols/test_magnet_uri_parser.cpp
-    # 需要添加实现文件，因为magnet_parser库可能没有单独定义
+    protocols/test_node_id.cpp
+    protocols/test_routing_table.cpp
     ../src/protocols/magnet_uri_parser.cpp
+    ../src/protocols/dch_types.cpp
+    ../src/protocols/routing_table.cpp
 )
 
 # 链接库
@@ -14,13 +16,14 @@ target_link_libraries(magnet_tests
     PRIVATE
         GTest::gtest
         GTest::gtest_main
+        pthread  
 )
 
 # 包含目录
 target_include_directories(magnet_tests
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/include  # 指向 include 目录
-        ${CMAKE_SOURCE_DIR}/src  # 可能需要这个
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
 )
 
 include(GoogleTest)
