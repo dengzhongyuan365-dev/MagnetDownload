@@ -104,7 +104,10 @@ TEST(InfoHashTest, FromHexInvalidLength) {
 }
 
 TEST(InfoHashTest, FromBase32Valid) {
-    std::string base32 = "MFRGG2LTMVZGS3THMFZGK4TTNFXW4IDPMYFA";
+    std::string base32 = "";
+    for (int i = 0; i < 32; i++) {
+        base32 += "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[i % 32];
+    }
     auto hash = InfoHash::fromBase32(base32);
     EXPECT_TRUE(!hash.has_value());
 }
