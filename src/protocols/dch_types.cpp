@@ -2,6 +2,12 @@
 #include <cstring>
 #include <random>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 namespace magnet::protocols {
 
     NodeId::NodeId():data_{}{}
@@ -61,5 +67,55 @@ namespace magnet::protocols {
             result.push_back(hex[b & 0x0f]);
         }
         return result;
+    }
+
+    std::optional<CompactNodeInfo> CompactNodeInfo::fromBytes(const uint8_t* data, size_t len) {
+        if (len < s_kCompactNodeSize) 
+            return std::nullopt;
+        
+            CompactNodeInfo info;
+            NodeId::ByteArray id_bytes;
+
+            std::memcpy(id_bytes.data(), data, 20);
+            info.id_ = NodeId(id_bytes);
+
+            std::memcpy(&info.ip_, data + 20,4);
+            std::memcpy(&info.port_, data + 24, 2);
+            return info;
+    }
+
+    std::vector<CompactNodeInfo> CompactNodeInfo::parseNodes(const std::string& data) {
+        std::vector<CompactNodeInfo> nodes;
+        for (size_t i = 0; i + s_kCompactNodeSize <= data.size(); i += s_kCompactNodeSize) {
+            auto node = fromBytes(reinterpret_cast<const uint8_t*>(data.data() + i), s_kCompactNodeSize);
+            if (node) {
+                nodes.push_back(*node);
+            }
+        }
+        return nodes;
+    }
+
+    std::array<uint8_t, s_kCompactNodeSize> CompactNodeInfo::toBytes() const {
+        std::array<uint8_t, s_kCompactNodeSize> result;
+        std::memcpy(result.data(), id_.bytes().data(), 20);
+        std::memcpy(result.data() + 20, &ip_, 4);
+        std::memcpy(result.data() + 24, &port_, 2);
+        return result;
+    }
+
+    DhtNode CompactNodeInfo::toDhtNode() const {
+        // 将网络字节序转换为主机字节序
+        uint32_t host_ip = ntohl(ip_);
+        uint16_t host_port = ntohs(port_);
+        
+        // 转换 IP 为字符串
+        char ip_str[16];
+        snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u",
+            (host_ip >> 24) & 0xFF,
+            (host_ip >> 16) & 0xFF,
+            (host_ip >> 8) & 0xFF,
+            host_ip & 0xFF);
+        
+        return DhtNode(id_, ip_str, host_port);
     }
 };

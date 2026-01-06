@@ -104,5 +104,133 @@ namespace magnet::protocols {
         network::UdpEndpoint toEndpoint() const {
             return network::UdpEndpoint(ip_, port_);
         }
-    }
+    };
+
+    /*
+    * @struct CompactNodeInfo
+    * @brief DHT 协议中的紧凑节点格式
+    * 格式： 20字节 nodeId + 4字节 IPV4 + 2 字节端口（网络字节序）
+    */
+
+    struct CompactNodeInfo{
+        static constexpr size_t s_kCompactNodeSize = 26;
+
+        NodeId id_;
+        uint32_t ip_;
+        uint16_t port_;
+
+        /*
+        * @brief 从字节数组解析
+        */
+
+        static std::optional<CompactNodeInfo> fromBytes(const uint8_t* data, size_t len);
+
+        /*
+        * @brief 从字符串解析多个节点
+        */
+
+        static std::vector<CompactNodeInfo> parseNodes(const std::string& data);
+
+        /*
+        * 转换字节数组
+        */
+
+        std::array<uint8_t, s_kCompactNodeSize> toBytes() const;
+
+        /*
+        *   @brief 转换为DhtNode
+        */
+        DhtNode toDhtNode() const;
+
+    };
+
+
+    /**
+     * @struct CompactPeerInfo
+     * @brief DHT 协议中的紧凑 Peer 格式
+     * 
+     * 格式：4 字节 IPv4 + 2 字节端口（网络字节序）
+     */
+    struct CompactPeerInfo {
+        static constexpr size_t s_kCompactPeerSize = 6;  // 4 + 2
+        
+        uint32_t ip;    // 网络字节序
+        uint16_t port;  // 网络字节序
+        
+        /**
+         * @brief 从字节数组解析
+         */
+        static std::optional<CompactPeerInfo> fromBytes(const uint8_t* data, size_t len) {
+            if (len < s_kCompactPeerSize) return std::nullopt;
+            
+            CompactPeerInfo info;
+            std::memcpy(&info.ip, data, 4);
+            std::memcpy(&info.port, data + 4, 2);
+            return info;
+        }
+        
+        /**
+         * @brief 从字符串解析多个 Peer
+         */
+        static std::vector<CompactPeerInfo> parsePeers(const std::string& data) {
+            std::vector<CompactPeerInfo> peers;
+            for (size_t i = 0; i + s_kCompactPeerSize <= data.size(); i += s_kCompactPeerSize) {
+                auto peer = fromBytes(reinterpret_cast<const uint8_t*>(data.data() + i), s_kCompactPeerSize);
+                if (peer) {
+                    peers.push_back(*peer);
+                }
+            }
+            return peers;
+        }
+        
+        /**
+         * @brief 获取 IP 字符串
+         */
+        std::string ipString() const {
+            uint32_t host_ip = ntohl(ip);
+            char ip_str[16];
+            snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u",
+                (host_ip >> 24) & 0xFF,
+                (host_ip >> 16) & 0xFF,
+                (host_ip >> 8) & 0xFF,
+                host_ip & 0xFF);
+            return ip_str;
+        }
+        
+        /**
+         * @brief 获取端口（主机字节序）
+         */
+        uint16_t hostPort() const {
+            return ntohs(port);
+        }
+    };
+
+    // ============================================================================
+    // DHT 消息类型枚举
+    // ============================================================================
+
+    enum class DhtMessageType {
+        QUERY,      // 查询 (y = "q")
+        RESPONSE,   // 响应 (y = "r")
+        ERROR       // 错误 (y = "e")
+    };
+
+    enum class DhtQueryType {
+        PING,           // ping
+        FIND_NODE,      // find_node
+        GET_PEERS,      // get_peers
+        ANNOUNCE_PEER   // announce_peer
+    };
+
+    // ============================================================================
+    // DHT 错误码
+    // ============================================================================
+
+    enum class DhtErrorCode {
+        GENERIC = 201,
+        SERVER = 202,
+        PROTOCOL = 203,
+        METHOD_UNKNOWN = 204
+    };
+    
 };
