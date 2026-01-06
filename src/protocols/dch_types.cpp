@@ -69,6 +69,59 @@ namespace magnet::protocols {
         return result;
     }
 
+    std::string NodeId::toString() const {
+        return std::string(reinterpret_cast<const char*>(data_.data()), s_KNodeSize);
+    }
+
+    const NodeId::ByteArray& NodeId::bytes() const {
+        return data_;
+    }
+
+    int NodeId::compareDistance(const NodeId& a, const NodeId& b) const {
+        // 比较 a 和 b 谁离 this 更近
+        for (size_t i = 0; i < s_KNodeSize; ++i) {
+            uint8_t dist_a = data_[i] ^ a.data_[i];
+            uint8_t dist_b = data_[i] ^ b.data_[i];
+            if (dist_a < dist_b) return -1;  // a 更近
+            if (dist_a > dist_b) return 1;   // b 更近
+        }
+        return 0;  
+    }
+
+    int NodeId::leadingZeroBits() const {
+        for (size_t i = 0; i < s_KNodeSize; ++i) {
+            if (data_[i] != 0) {
+                uint8_t byte = data_[i];
+                int bits = 0;
+                while ((byte & 0x80) == 0) {
+                    byte <<= 1;
+                    ++bits;
+                }
+                return static_cast<int>(i * 8) + bits;
+            }
+        }
+        return 160;  
+    }
+
+    bool NodeId::isZero() const {
+        for (uint8_t b : data_) {
+            if (b != 0) return false;
+        }
+        return true;
+    }
+
+    bool NodeId::operator==(const NodeId& other) const {
+        return data_ == other.data_;
+    }
+
+    bool NodeId::operator!=(const NodeId& other) const {
+        return data_ != other.data_;
+    }
+
+    bool NodeId::operator<(const NodeId& other) const {
+        return data_ < other.data_;
+    }
+
     std::optional<CompactNodeInfo> CompactNodeInfo::fromBytes(const uint8_t* data, size_t len) {
         if (len < s_kCompactNodeSize) 
             return std::nullopt;

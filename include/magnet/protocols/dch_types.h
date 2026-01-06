@@ -34,8 +34,8 @@ namespace magnet::protocols {
 
             // 距离计算(XOR)
             NodeId distance(const NodeId& other) const;
-            // 比较谁更接近
-            int compareDisance(const NodeId& a, const NodeId& b) const;
+            // 比较谁更接近 (返回 -1: a更近, 0: 相等, 1: b更近)
+            int compareDistance(const NodeId& a, const NodeId& b) const;
             // 前导零的位数
             int leadingZeroBits() const;
 
@@ -51,9 +51,6 @@ namespace magnet::protocols {
             bool operator==(const NodeId& other) const;
             bool operator!=(const NodeId& other) const;
             bool operator<(const NodeId& other) const;
-
-            const ByteArray& bytes() const {return data_;}
-            ByteArray& bytes() {return data_;}
 
         private:
             ByteArray data_;
