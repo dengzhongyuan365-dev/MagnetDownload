@@ -7,6 +7,7 @@ add_library(magnet_protocols STATIC
     magnet_uri_parser.cpp
     dch_types.cpp                   
     routing_table.cpp  
+    bencode.cpp
 )
 
 target_include_directories(magnet_protocols
