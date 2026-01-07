@@ -74,70 +74,38 @@ public:
      */
     static std::optional<BencodeValue> decode(std::string_view data, size_t& pos);
 
+    // 便捷编码方法
+    static std::string encode(BencodeInt i);
+    static std::string encode(const std::string& s);
+
 private:
-    // ========== 编码私有方法 ==========
-    
-    /**
-     * @brief 编码整数
-     */
-    static void encode_int(BencodeInt value, std::string& output);
-    
-    /**
-     * @brief 编码字符串
-     */
-    static void encode_string(const BencodeString& value, std::string& output);
-    
-    /**
-     * @brief 编码列表
-     */
-    static void encode_list(const BencodeList& value, std::string& output);
-    
-    /**
-     * @brief 编码字典
-     */
-    static void encode_dict(const BencodeDict& value, std::string& output);
-    
-    // ========== 解码私有方法 ==========
-    
-    /**
-     * @brief 解码整数
-     * @param data 数据
-     * @param pos 当前位置（输入输出参数）
-     * @return 解码的整数值
-     */
-    static std::optional<BencodeInt> decode_int(std::string_view data, size_t& pos);
-    
-    /**
-     * @brief 解码字符串
-     * @param data 数据
-     * @param pos 当前位置（输入输出参数）
-     * @return 解码的字符串值
-     */
-    static std::optional<BencodeString> decode_string(std::string_view data, size_t& pos);
-    
-    /**
-     * @brief 解码列表
-     * @param data 数据
-     * @param pos 当前位置（输入输出参数）
-     * @return 解码的列表值
-     */
-    static std::optional<BencodeList> decode_list(std::string_view data, size_t& pos);
-    
-    /**
-     * @brief 解码字典
-     * @param data 数据
-     * @param pos 当前位置（输入输出参数）
-     * @return 解码的字典值
-     */
-    static std::optional<BencodeDict> decode_dict(std::string_view data, size_t& pos);
-    
-    /**
-     * @brief 解码单个值（根据首字符判断类型）
-     * @param data 数据
-     * @param pos 当前位置（输入输出参数）
-     * @return 解码的值
-     */
-    static std::optional<BencodeValue> decode_value(std::string_view data, size_t& pos);
+   static void encodeValue(const BencodeValue& value, std::string&out);
+   static void encodeInt(BencodeInt i, std::string& out);
+   static void encodeString(const std::string& s, std::string& out);
+   static void encodeList(const BencodeList& list, std::string& out);
+   static void encodeDict(const BencodeDict& dict, std::string& out);
+
+   class Decoder
+   {
+        public: 
+            explicit Decoder(std::string_view data);
+            std::optional<BencodeValue> decode();
+
+        private:
+            std::optional<BencodeValue> decodeValue();
+            std::optional<BencodeInt> decodeInt();
+            std::optional<BencodeString> decodeString();
+            std::optional<BencodeList> decodeList();
+            std::optional<BencodeDict> decodeDict();
+
+            bool hasMore() const;
+            char peek() const;
+            char consume();
+            bool expect(char c);
+
+            std::string_view data_;
+            size_t pos_ = 0;
+   };
 };
 
 } // namespace magnet::protocols

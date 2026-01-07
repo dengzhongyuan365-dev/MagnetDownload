@@ -6,6 +6,7 @@
 #include <variant>
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 namespace magnet::protocols {
 
@@ -65,92 +66,48 @@ using BencodeDict = std::map<std::string, BencodeValue>;
  * BencodeValue value4(dict);
  * @endcode
  */
-class BencodeValue {
-public:
-    /**
-     * @brief Bencode 值的类型枚举
-     */
-    enum class Type {
-        INT,        // 整数
-        STRING,     // 字符串
-        LIST,       // 列表
-        DICT        // 字典
-    };
-    
-    // 构造函数
-    BencodeValue();
-    BencodeValue(BencodeInt value);
-    BencodeValue(const char* value);
-    BencodeValue(BencodeString value);
-    BencodeValue(BencodeList value);
-    BencodeValue(BencodeDict value);
-    
-    // 拷贝和移动
-    BencodeValue(const BencodeValue& other);
-    BencodeValue(BencodeValue&& other) noexcept;
-    BencodeValue& operator=(const BencodeValue& other);
-    BencodeValue& operator=(BencodeValue&& other) noexcept;
-    
-    ~BencodeValue() = default;
-    
-    /**
-     * @brief 获取值的类型
-     * @return 类型枚举
-     */
-    Type type() const;
-    
-    /**
-     * @brief 检查是否是整数类型
-     */
-    bool is_int() const { return type() == Type::INT; }
-    
-    /**
-     * @brief 检查是否是字符串类型
-     */
-    bool is_string() const { return type() == Type::STRING; }
-    
-    /**
-     * @brief 检查是否是列表类型
-     */
-    bool is_list() const { return type() == Type::LIST; }
-    
-    /**
-     * @brief 检查是否是字典类型
-     */
-    bool is_dict() const { return type() == Type::DICT; }
-    
-    /**
-     * @brief 获取整数值
-     * @return 整数值
-     * @throw std::bad_variant_access 如果类型不是整数
-     */
-    BencodeInt as_int() const;
-    
-    /**
-     * @brief 获取字符串值
-     * @return 字符串引用
-     * @throw std::bad_variant_access 如果类型不是字符串
-     */
-    const BencodeString& as_string() const;
-    
-    /**
-     * @brief 获取列表值
-     * @return 列表引用
-     * @throw std::bad_variant_access 如果类型不是列表
-     */
-    const BencodeList& as_list() const;
-    BencodeList& as_list();
-    
-    /**
-     * @brief 获取字典值
-     * @return 字典引用
-     * @throw std::bad_variant_access 如果类型不是字典
-     */
-    const BencodeDict& as_dict() const;
-    BencodeDict& as_dict();
 
-private:
-    std::variant<BencodeInt, BencodeString, BencodeList, BencodeDict> data_;
-};
+ /*
+ * @brief Bencode 值类型
+ * 
+ */
+
+ class BencodeValue
+ {
+    public:
+        BencodeValue() = default;
+        BencodeValue(BencodeInt i);
+        BencodeValue(const BencodeString& s);
+        BencodeValue(const char* s);
+        BencodeValue(const BencodeList& list);
+        BencodeValue(const BencodeDict& dict);
+
+        bool isInt() const;
+        bool isString() const;
+        bool isList() const;
+        bool isDict() const;
+
+        // 值访问
+        BencodeInt asInt() const;
+        const BencodeString& asString() const;
+        const BencodeList& asList() const;
+        const BencodeDict& asDict() const;
+
+        // 可变访问
+        BencodeString& asString();
+        BencodeDict& asDict();
+        BencodeList& asList();
+
+        // 字典便捷访问
+        BencodeValue& operator[](const std::string& key);
+        const BencodeValue& operator[](const std::string& key) const;
+        
+        // 安全访问
+        std::optional<BencodeInt> getInt() const;
+        std::optional<std::string> getString() const;
+
+    private:
+        std::variant<std::monostate, BencodeInt, BencodeString, BencodeList, BencodeDict> data_;
+ };
 
 } // namespace magnet::protocols
