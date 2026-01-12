@@ -8,6 +8,7 @@ add_library(magnet_protocols STATIC
     dch_types.cpp                   
     routing_table.cpp  
     bencode.cpp
+    dht_message.cpp
 )
 
 target_include_directories(magnet_protocols
