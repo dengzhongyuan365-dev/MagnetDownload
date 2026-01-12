@@ -83,11 +83,8 @@ bool DownloadController::start(const DownloadConfig& config) {
     // 通知状态变化
     setState(DownloadState::ResolvingMetadata);
     
-    // 初始化 DHT
+    // 初始化 DHT（会自动 bootstrap 并查找 Peer）
     initializeDht();
-    
-    // 开始查找 Peer
-    findPeers();
     
     // 启动元数据超时定时器
     metadata_timeout_timer_.expires_after(config_.metadata_timeout);
@@ -238,17 +235,50 @@ void DownloadController::initializeDht() {
     protocols::DhtClientConfig dht_config;
     dht_config.listen_port = 0;  // 随机端口
     
-    // 添加引导节点
+    // 添加引导节点 - 包含多个备用节点以提高可用性
     dht_config.bootstrap_nodes = {
         {"router.bittorrent.com", 6881},
         {"router.utorrent.com", 6881},
-        {"dht.transmissionbt.com", 6881}
+        {"dht.transmissionbt.com", 6881},
+        {"dht.libtorrent.org", 25401},
+        // 备用节点
+        {"dht.aelitis.com", 6881},
+        {"87.98.162.88", 6881},      // 欧洲节点 IP
+        {"82.221.103.244", 6881}     // 备用节点 IP
     };
+    
+    // 增加超时时间（网络不稳定时更有可能成功）
+    dht_config.query_config.default_timeout = std::chrono::milliseconds(5000);
+    dht_config.query_config.default_max_retries = 4;
     
     dht_client_ = std::make_shared<protocols::DhtClient>(io_context_, dht_config);
     dht_client_->start();
     
     LOG_INFO("DHT client started on port " + std::to_string(dht_client_->localPort()));
+    
+    // Bootstrap - 连接引导节点获取初始路由表
+    LOG_INFO("Bootstrapping DHT...");
+    auto self = shared_from_this();
+    dht_client_->bootstrap([self](bool success, size_t node_count) {
+        if (success) {
+            LOG_INFO("DHT bootstrap successful, " + std::to_string(node_count) + " nodes");
+            // 引导成功后开始查找 Peer
+            self->findPeers();
+        } else {
+            LOG_WARNING("DHT bootstrap failed, will retry...");
+            // 延迟重试
+            self->peer_search_timer_.expires_after(std::chrono::seconds(5));
+            self->peer_search_timer_.async_wait([self](const asio::error_code& ec) {
+                if (!ec && self->state_.load() != DownloadState::Stopped) {
+                    self->dht_client_->bootstrap([self](bool success, size_t) {
+                        if (success) {
+                            self->findPeers();
+                        }
+                    });
+                }
+            });
+        }
+    });
 }
 
 void DownloadController::findPeers() {

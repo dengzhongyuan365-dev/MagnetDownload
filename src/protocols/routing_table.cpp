@@ -21,7 +21,12 @@ namespace magnet::protocols {
     bool RoutingTable::addNode(const DhtNode& node) {
         std::lock_guard<std::mutex> lock(mutex_);
 
+        // 验证节点有效性
         if (node.id_ == local_id_)
+            return false;
+        
+        // 过滤无效端口
+        if (node.port_ == 0 || node.ip_.empty())
             return false;
 
         size_t bucket_idx = getBucketIndex(node.id_);

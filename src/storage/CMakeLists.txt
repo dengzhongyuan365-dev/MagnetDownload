@@ -4,10 +4,8 @@
 message(STATUS "Configuring Storage Library...")
 
 add_library(magnet_storage STATIC
-    file_manager.cpp                # 占位实现，你将要完善
-    # piece_manager.cpp             # 你将要实现的
-    # disk_cache.cpp                # 你将要实现的
-    # hash_verifier.cpp             # 你将要实现的
+    file_manager.cpp
+    piece_manager.cpp
 )
 
 target_include_directories(magnet_storage

@@ -1,145 +1,329 @@
-// MagnetDownload - Main Application Entry Point
-// 主程序入口 - 集成所有模块，演示async模块功能
+// MagnetDownload - Magnet Link Downloader
+// Command Line Interface
 
 #include <iostream>
+#include <string>
 #include <thread>
 #include <chrono>
 #include <atomic>
-#include <magnet/async/event_loop_manager.h>
-#include <magnet/async/task_scheduler.h>
+#include <csignal>
+#include <iomanip>
 
-// 其他模块的占位函数声明
-namespace magnet::network { void placeholder_udp_client(); }
-namespace magnet::protocols { void placeholder_magnet_uri_parser(); }
-namespace magnet::storage { void placeholder_file_manager(); }
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
-void test_async_module() {
-    std::cout << "\n🔄 测试Async模块功能..." << std::endl;
-    
-    try {
-        // 创建事件循环管理器
-        magnet::async::EventLoopManager loop_manager(4);
-        std::cout << "✓ EventLoopManager创建成功 (4个工作线程)" << std::endl;
-        
-        // 启动事件循环
-        loop_manager.start();
-        std::cout << "✓ EventLoopManager启动成功" << std::endl;
-        
-        // 创建任务调度器
-        magnet::async::TaskScheduler scheduler(loop_manager);
-        std::cout << "✓ TaskScheduler创建成功" << std::endl;
-        
-        // 测试任务计数器
-        std::atomic<int> completed_tasks{0};
-        const int total_tasks = 20;
-        
-        // 投递不同优先级的任务
-        std::cout << "\n📋 投递任务测试..." << std::endl;
-        
-        // 高优先级任务
-        for (int i = 0; i < 5; ++i) {
-            scheduler.post_task(magnet::async::TaskPriority::HIGH, [&completed_tasks, i]() {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                completed_tasks.fetch_add(1);
-                std::cout << "🔥 高优先级任务 " << i << " 完成" << std::endl;
-            });
-        }
-        
-        // 普通优先级任务
-        for (int i = 0; i < 10; ++i) {
-            scheduler.post_task(magnet::async::TaskPriority::NORMAL, [&completed_tasks, i]() {
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                completed_tasks.fetch_add(1);
-                std::cout << "⚡ 普通任务 " << i << " 完成" << std::endl;
-            });
-        }
-        
-        // 延迟任务
-        scheduler.post_delayed_task(
-            std::chrono::milliseconds(500),
-            magnet::async::TaskPriority::CRITICAL,
-            [&completed_tasks]() {
-                completed_tasks.fetch_add(1);
-                std::cout << "⏰ 延迟任务完成" << std::endl;
-            }
-        );
-        
-        // 周期性任务 (执行3次)
-        std::atomic<int> periodic_count{0};
-        auto periodic_id = scheduler.post_periodic_task(
-            std::chrono::milliseconds(200),
-            magnet::async::TaskPriority::LOW,
-            [&completed_tasks, &periodic_count]() {
-                int count = periodic_count.fetch_add(1);
-                completed_tasks.fetch_add(1);
-                std::cout << "🔄 周期性任务执行第 " << (count + 1) << " 次" << std::endl;
-            }
-        );
-        
-        // 等待一段时间后取消周期性任务
-        std::this_thread::sleep_for(std::chrono::milliseconds(700));
-        scheduler.cancel_task(periodic_id);
-        std::cout << "🛑 周期性任务已取消" << std::endl;
-        
-        // 等待所有任务完成
-        while (completed_tasks.load() < total_tasks) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            
-            // 显示统计信息
-            auto loop_stats = loop_manager.get_statistics();
-            auto scheduler_stats = scheduler.get_statistics();
-            
-            if (completed_tasks.load() % 5 == 0) {
-                std::cout << "📊 进度: " << completed_tasks.load() 
-                         << "/" << total_tasks << " 任务完成" << std::endl;
-            }
+#include <asio.hpp>
+#include "magnet/application/download_controller.h"
+#include "magnet/utils/logger.h"
 
-            completed_tasks.fetch_add(1);
-        }
-        
-        // 显示最终统计
-        auto loop_stats = loop_manager.get_statistics();
-        auto scheduler_stats = scheduler.get_statistics();
-        
-        std::cout << "\n📊 最终统计信息：" << std::endl;
-        std::cout << "EventLoopManager:" << std::endl;
-        std::cout << "  - 工作线程: " << loop_stats.thread_count << std::endl;
-        std::cout << "  - 总处理任务: " << loop_stats.total_tasks_handled << std::endl;
-        
-        std::cout << "TaskScheduler:" << std::endl;
-        std::cout << "  - 完成任务: " << scheduler_stats.completed_tasks << std::endl;
-        std::cout << "  - 待执行任务: " << scheduler_stats.pending_tasks << std::endl;
-        
-        // 停止事件循环
-        loop_manager.stop();
-        std::cout << "✓ EventLoopManager已停止" << std::endl;
-        
-    } catch (const std::exception& e) {
-        std::cerr << "❌ Async模块测试失败: " << e.what() << std::endl;
-        return;
-    }
-    
-    std::cout << "✅ Async模块测试成功！" << std::endl;
+using namespace magnet;
+
+// Windows console UTF-8 setup
+void setupConsole() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    // Enable ANSI escape sequences
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD dwMode = 0;
+    GetConsoleMode(hOut, &dwMode);
+    SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+#endif
 }
 
-int main() {
-    std::cout << "🚀 MagnetDownloader - 模块化架构演示" << std::endl;
-    std::cout << "=====================================" << std::endl;
+// Global variables
+std::atomic<bool> g_running{true};
+std::shared_ptr<application::DownloadController> g_controller;
+
+// Signal handler
+void signalHandler(int signal) {
+    (void)signal;
+    std::cout << "\n\n[!] Interrupt received, stopping download..." << std::endl;
+    g_running = false;
+    if (g_controller) {
+        g_controller->stop();
+    }
+}
+
+// Print help
+void printHelp(const char* program) {
+    std::cout << R"(
++--------------------------------------------------------------+
+|              MagnetDownload - Magnet Link Downloader         |
++--------------------------------------------------------------+
+|  Usage:                                                      |
+|    magnetdownload <magnet_uri> [options]                     |
+|                                                              |
+|  Options:                                                    |
+|    -o, --output <path>    Save path (default: current dir)   |
+|    -c, --connections <n>  Max connections (default: 50)      |
+|    -v, --verbose          Verbose output                     |
+|    -h, --help             Show help                          |
+|                                                              |
+|  Example:                                                    |
+|    magnetdownload "magnet:?xt=urn:btih:..." -o ./downloads   |
+|                                                              |
+|  Press Ctrl+C to stop download                               |
++--------------------------------------------------------------+
+)" << std::endl;
+}
+
+// 格式化文件大小
+std::string formatSize(size_t bytes) {
+    const char* units[] = {"B", "KB", "MB", "GB", "TB"};
+    int unit = 0;
+    double size = static_cast<double>(bytes);
     
-    // 测试已实现的async模块
-    test_async_module();
+    while (size >= 1024 && unit < 4) {
+        size /= 1024;
+        unit++;
+    }
     
-    std::cout << "\n📦 其他模块状态：" << std::endl;
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << size << " " << units[unit];
+    return oss.str();
+}
+
+// 格式化时间
+std::string formatTime(std::chrono::seconds secs) {
+    if (secs.count() <= 0) return "--:--:--";
+    if (secs.count() > 86400 * 7) return ">7 days";
     
-    // 其他模块占位符
-    // magnet::network::placeholder_udp_client();
-    // magnet::protocols::placeholder_magnet_uri_parser();
-    // magnet::storage::placeholder_file_manager();
+    int hours = static_cast<int>(secs.count() / 3600);
+    int mins = static_cast<int>((secs.count() % 3600) / 60);
+    int s = static_cast<int>(secs.count() % 60);
     
-    std::cout << "📺 ConsoleInterface placeholder - UI modules loaded dynamically" << std::endl;
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(2) << hours << ":"
+        << std::setfill('0') << std::setw(2) << mins << ":"
+        << std::setfill('0') << std::setw(2) << s;
+    return oss.str();
+}
+
+// Print progress bar
+void printProgress(const application::DownloadProgress& progress) {
+    const int bar_width = 40;
+    double percent = progress.progressPercent();
+    int filled = static_cast<int>(percent * bar_width / 100.0);
     
-    std::cout << "\n🎉 Async模块实现完成！" << std::endl;
-    std::cout << "💡 可以继续实现其他模块了。" << std::endl;
+    std::cout << "\r";
     
+    // Progress bar (ASCII)
+    std::cout << "[";
+    for (int i = 0; i < bar_width; ++i) {
+        if (i < filled) std::cout << "=";
+        else if (i == filled) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] ";
+    
+    // Percentage
+    std::cout << std::fixed << std::setprecision(1) << std::setw(5) << percent << "% ";
+    
+    // Speed
+    std::cout << formatSize(static_cast<size_t>(progress.download_speed)) << "/s ";
+    
+    // Downloaded/Total
+    std::cout << formatSize(progress.downloaded_size) << "/" << formatSize(progress.total_size) << " ";
+    
+    // ETA
+    std::cout << "ETA: " << formatTime(progress.eta()) << " ";
+    
+    // Peers
+    std::cout << "Peers: " << progress.connected_peers << "/" << progress.total_peers;
+    
+    std::cout << std::flush;
+}
+
+// Print state
+void printState(application::DownloadState state) {
+    std::cout << "\n[*] Status: ";
+    switch (state) {
+        case application::DownloadState::Idle:
+            std::cout << "Idle";
+            break;
+        case application::DownloadState::ResolvingMetadata:
+            std::cout << "Searching for peers...";
+            break;
+        case application::DownloadState::Downloading:
+            std::cout << "Downloading";
+            break;
+        case application::DownloadState::Paused:
+            std::cout << "Paused";
+            break;
+        case application::DownloadState::Verifying:
+            std::cout << "Verifying";
+            break;
+        case application::DownloadState::Completed:
+            std::cout << "Download completed!";
+            break;
+        case application::DownloadState::Failed:
+            std::cout << "Download failed";
+            break;
+        case application::DownloadState::Stopped:
+            std::cout << "Stopped";
+            break;
+    }
+    std::cout << std::endl;
+}
+
+int main(int argc, char* argv[]) {
+    // Setup console for UTF-8 on Windows
+    setupConsole();
+    
+    // Setup signal handlers
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
+    
+    // Parse command line arguments
+    if (argc < 2) {
+        printHelp(argv[0]);
+        return 1;
+    }
+    
+    std::string magnet_uri;
+    std::string output_path = ".";
+    size_t max_connections = 50;
+    bool verbose = false;
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        
+        if (arg == "-h" || arg == "--help") {
+            printHelp(argv[0]);
+            return 0;
+        } else if (arg == "-o" || arg == "--output") {
+            if (i + 1 < argc) {
+                output_path = argv[++i];
+            }
+        } else if (arg == "-c" || arg == "--connections") {
+            if (i + 1 < argc) {
+                max_connections = std::stoul(argv[++i]);
+            }
+        } else if (arg == "-v" || arg == "--verbose") {
+            verbose = true;
+        } else if (arg[0] != '-') {
+            magnet_uri = arg;
+        }
+    }
+    
+    if (magnet_uri.empty()) {
+        std::cerr << "[ERROR] Please provide a magnet link" << std::endl;
+        printHelp(argv[0]);
+        return 1;
+    }
+    
+    // Setup logging
+    if (verbose) {
+        utils::Logger::instance().set_level(utils::LogLevel::DEBUG);
+    } else {
+        utils::Logger::instance().set_level(utils::LogLevel::INFO);
+    }
+    utils::Logger::instance().set_console_output(verbose);
+    
+    std::cout << R"(
++--------------------------------------------------------------+
+|              MagnetDownload - Magnet Link Downloader         |
++--------------------------------------------------------------+
+)" << std::endl;
+    
+    std::cout << "[>] Magnet: " << magnet_uri.substr(0, 60) << "..." << std::endl;
+    std::cout << "[>] Output: " << output_path << std::endl;
+    std::cout << "[>] Max connections: " << max_connections << std::endl;
+    std::cout << std::endl;
+    
+    try {
+        // Create io_context
+        asio::io_context io_context;
+        
+        // Create work guard to prevent io_context from exiting with no tasks
+        auto work_guard = asio::make_work_guard(io_context);
+        
+        // Create DownloadController
+        g_controller = std::make_shared<application::DownloadController>(io_context);
+        
+        // Setup callbacks
+        g_controller->setStateCallback([](application::DownloadState state) {
+            printState(state);
+        });
+        
+        g_controller->setProgressCallback([](const application::DownloadProgress& progress) {
+            printProgress(progress);
+        });
+        
+        g_controller->setMetadataCallback([](const application::TorrentMetadata& metadata) {
+            std::cout << "\n[+] Metadata received!" << std::endl;
+            std::cout << "    Name: " << metadata.name << std::endl;
+            std::cout << "    Size: " << formatSize(metadata.total_size) << std::endl;
+            std::cout << "    Pieces: " << metadata.piece_count << std::endl;
+            std::cout << std::endl;
+        });
+        
+        g_controller->setCompletedCallback([&work_guard](bool success, const std::string& error) {
+            std::cout << std::endl;
+            if (success) {
+                std::cout << "\n[+] Download completed!" << std::endl;
+            } else {
+                std::cout << "\n[-] Download failed: " << error << std::endl;
+            }
+            work_guard.reset();
+        });
+        
+        // Configure download
+        application::DownloadConfig config;
+        config.magnet_uri = magnet_uri;
+        config.save_path = output_path;
+        config.max_connections = max_connections;
+        config.metadata_timeout = std::chrono::seconds(300);
+        
+        // Start download
+        std::cout << "[*] Starting download..." << std::endl;
+        if (!g_controller->start(config)) {
+            std::cerr << "[-] Failed to start download" << std::endl;
+            return 1;
+        }
+        
+        // Run io_context in separate thread
+        std::thread io_thread([&io_context]() {
+            try {
+                io_context.run();
+            } catch (const std::exception& e) {
+                std::cerr << "IO Error: " << e.what() << std::endl;
+            }
+        });
+        
+        // Main loop - wait for completion or interrupt
+        while (g_running) {
+            auto state = g_controller->state();
+            if (state == application::DownloadState::Completed ||
+                state == application::DownloadState::Failed ||
+                state == application::DownloadState::Stopped) {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        
+        // Cleanup
+        work_guard.reset();
+        io_context.stop();
+        
+        if (io_thread.joinable()) {
+            io_thread.join();
+        }
+        
+        // Show final statistics
+        auto progress = g_controller->progress();
+        std::cout << "\n[*] Statistics:" << std::endl;
+        std::cout << "    Downloaded: " << formatSize(progress.downloaded_size) << std::endl;
+        std::cout << "    Uploaded: " << formatSize(progress.uploaded_size) << std::endl;
+        std::cout << "    Pieces: " << progress.completed_pieces << "/" << progress.total_pieces << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "[-] Error: " << e.what() << std::endl;
+        return 1;
+    }
+    
+    std::cout << "\n[*] Goodbye!" << std::endl;
     return 0;
 }

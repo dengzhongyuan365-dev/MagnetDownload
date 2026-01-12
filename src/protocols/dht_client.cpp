@@ -146,23 +146,28 @@ void DhtClient::bootstrap(BootstrapCallback callback) {
         auto msg = DhtMessage::createFindNode(my_id_, my_id_);
         
         query_manager_->sendQuery(bootstrap_node, std::move(msg),
-            [self, callback, success_count, remaining, host](QueryResult result) {
+            [self, callback, success_count, remaining, host, port](QueryResult result) {
                 if (result.is_ok()) {
                     const auto& response = result.value();
                     auto nodes = response.getNodes();
                     
-                    LOG_INFO("Bootstrap response from " + host + ", got " + 
-                             std::to_string(nodes.size()) + " nodes");
+                    LOG_INFO("Bootstrap response from " + host + ":" + std::to_string(port) + 
+                             ", got " + std::to_string(nodes.size()) + " nodes");
                     
-                    // 添加节点到路由表
+                    // 添加节点到路由表（过滤无效节点）
                     for (const auto& node : nodes) {
-                        self->routing_table_.addNode(node);
+                        if (node.port_ != 0) {
+                            self->routing_table_.addNode(node);
+                        } else {
+                            LOG_DEBUG("Skipping node with invalid port: " + node.ip_);
+                        }
                     }
                     
                     // 也添加响应者
                     DhtNode responder;
                     responder.id_ = response.senderId();
                     responder.ip_ = host;
+                    responder.port_ = port;
                     self->routing_table_.addNode(responder);
                     
                     success_count->fetch_add(1);
@@ -269,14 +274,28 @@ uint16_t DhtClient::localPort() const {
 // ============================================================================
 
 void DhtClient::onReceive(const network::UdpMessage& message) {
+    LOG_DEBUG("Received UDP packet from " + message.remote_endpoint.ip + 
+              ":" + std::to_string(message.remote_endpoint.port) + 
+              ", size=" + std::to_string(message.data.size()));
+    
     // 解析消息
     auto parsed = DhtMessage::parse(message.data);
     if (!parsed) {
         LOG_DEBUG("Failed to parse DHT message from " + message.remote_endpoint.ip);
+        // 打印前 50 字节帮助调试
+        std::string hex;
+        for (size_t i = 0; i < std::min(message.data.size(), size_t(50)); ++i) {
+            char buf[4];
+            snprintf(buf, sizeof(buf), "%02x ", message.data[i]);
+            hex += buf;
+        }
+        LOG_DEBUG("Data (hex): " + hex);
         return;
     }
     
     const auto& msg = *parsed;
+    LOG_DEBUG(std::string("Parsed DHT message: type=") + 
+              (msg.isQuery() ? "query" : (msg.isResponse() ? "response" : "error")));
     
     if (msg.isQuery()) {
         handleQuery(msg, message.remote_endpoint);
@@ -463,6 +482,8 @@ void DhtClient::startLookup(const InfoHash& target,
 void DhtClient::continueLookup(const std::string& lookup_id) {
     std::vector<DhtNode> nodes_to_query;
     InfoHash target;
+    bool should_complete = false;
+    bool complete_success = false;
     
     {
         std::lock_guard<std::mutex> lock(lookups_mutex_);
@@ -474,19 +495,25 @@ void DhtClient::continueLookup(const std::string& lookup_id) {
         auto& state = it->second;
         
         if (!state.shouldContinue()) {
-            // 查找收敛，完成
-            completeLookup(lookup_id, !state.found_peers.empty());
-            return;
+            // 标记为需要完成（在锁外执行）
+            should_complete = true;
+            complete_success = !state.found_peers.empty();
+        } else {
+            state.current_round++;
+            nodes_to_query = state.getNextNodes(state.alpha);
+            target = state.target;
+            
+            // 标记为 pending
+            for (const auto& node : nodes_to_query) {
+                state.pending.insert(node.id_);
+            }
         }
-        
-        state.current_round++;
-        nodes_to_query = state.getNextNodes(state.alpha);
-        target = state.target;
-        
-        // 标记为 pending
-        for (const auto& node : nodes_to_query) {
-            state.pending.insert(node.id_);
-        }
+    }
+    
+    // 在锁外调用 completeLookup 避免死锁
+    if (should_complete) {
+        completeLookup(lookup_id, complete_success);
+        return;
     }
     
     if (nodes_to_query.empty()) {
@@ -526,69 +553,83 @@ void DhtClient::continueLookup(const std::string& lookup_id) {
 void DhtClient::handleLookupResponse(const std::string& lookup_id,
                                      const DhtNode& responder,
                                      const DhtMessage& response) {
-    std::lock_guard<std::mutex> lock(lookups_mutex_);
-    auto it = active_lookups_.find(lookup_id);
-    if (it == active_lookups_.end() || it->second.completed) {
-        return;
+    std::vector<PeerInfo> new_peers;
+    PeerCallback on_peer_callback;
+    std::vector<DhtNode> nodes_to_add;
+    
+    {
+        std::lock_guard<std::mutex> lock(lookups_mutex_);
+        auto it = active_lookups_.find(lookup_id);
+        if (it == active_lookups_.end() || it->second.completed) {
+            return;
+        }
+        
+        auto& state = it->second;
+        
+        // 从 pending 移除，添加到 queried
+        state.pending.erase(responder.id_);
+        state.queried.insert(responder.id_);
+        
+        // 保存回调（用于后面在锁外调用）
+        on_peer_callback = state.on_peer;
+        
+        // 保存 token
+        if (!response.token().empty()) {
+            state.token = response.token();
+            LOG_DEBUG("Received token: " + std::to_string(response.token().size()) + " bytes");
+        }
+        
+        LOG_DEBUG("Response: hasPeers=" + std::string(response.hasPeers() ? "yes" : "no") +
+                  ", hasNodes=" + std::string(response.hasNodes() ? "yes" : "no"));
+        
+        // 处理 Peers
+        if (response.hasPeers()) {
+            auto peers = response.getPeers();
+            LOG_INFO("Found " + std::to_string(peers.size()) + " peers from get_peers response");
+            
+            for (const auto& peer : peers) {
+                // 检查是否是新 Peer
+                bool is_new = true;
+                for (const auto& existing : state.found_peers) {
+                    if (existing.ip == peer.ip && existing.port == peer.port) {
+                        is_new = false;
+                        break;
+                    }
+                }
+                
+                if (is_new) {
+                    state.found_peers.push_back(peer);
+                    new_peers.push_back(peer);
+                }
+            }
+        }
+        
+        // 处理节点
+        if (response.hasNodes()) {
+            nodes_to_add = response.getNodes();
+            state.addNodes(nodes_to_add);
+        }
     }
     
-    auto& state = it->second;
-    
-    // 从 pending 移除，添加到 queried
-    state.pending.erase(responder.id_);
-    state.queried.insert(responder.id_);
-    
-    // 更新路由表
+    // 在锁外更新路由表
     DhtNode updated_responder = responder;
     updated_responder.id_ = response.senderId();
     routing_table_.addNode(updated_responder);
     routing_table_.markNodeResponded(response.senderId());
     
-    // 保存 token
-    if (!response.token().empty()) {
-        state.token = response.token();
+    for (const auto& node : nodes_to_add) {
+        routing_table_.addNode(node);
     }
     
-    // 处理 Peers
-    if (response.hasPeers()) {
-        auto peers = response.getPeers();
-        LOG_INFO("Found " + std::to_string(peers.size()) + " peers");
-        
-        for (const auto& peer : peers) {
-            // 检查是否是新 Peer
-            bool is_new = true;
-            for (const auto& existing : state.found_peers) {
-                if (existing.ip == peer.ip && existing.port == peer.port) {
-                    is_new = false;
-                    break;
-                }
-            }
-            
-            if (is_new) {
-                state.found_peers.push_back(peer);
-                
-                // 回调通知
-                if (state.on_peer) {
-                    state.on_peer(peer);
-                }
-                
-                {
-                    std::lock_guard<std::mutex> stats_lock(stats_mutex_);
-                    statistics_.peers_found++;
-                }
-            }
+    // 在锁外调用回调，避免死锁
+    if (on_peer_callback && !new_peers.empty()) {
+        for (const auto& peer : new_peers) {
+            on_peer_callback(peer);
         }
-    }
-    
-    // 处理节点
-    if (response.hasNodes()) {
-        auto nodes = response.getNodes();
-        state.addNodes(nodes);
         
-        // 添加到路由表
-        for (const auto& node : nodes) {
-            routing_table_.addNode(node);
-        }
+        // 更新统计
+        std::lock_guard<std::mutex> stats_lock(stats_mutex_);
+        statistics_.peers_found += new_peers.size();
     }
 }
 
