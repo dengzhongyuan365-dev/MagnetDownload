@@ -4,10 +4,9 @@
 message(STATUS "Configuring Network Library...")
 
 add_library(magnet_network STATIC
-    udp_client.cpp                  # 占位实现，你将要完善
-    # dht_client.cpp                # 你将要实现的
-    # peer_connection.cpp           # 你将要实现的
-    # tcp_connection.cpp            # 你将要实现的
+    udp_client.cpp
+    tcp_client.cpp
+    # peer_connection.cpp           # 待实现
 )
 
 target_include_directories(magnet_network
