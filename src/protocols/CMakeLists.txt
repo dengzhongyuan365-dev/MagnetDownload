@@ -13,6 +13,7 @@ add_library(magnet_protocols STATIC
     dht_client.cpp
     bt_message.cpp
     peer_connection.cpp
+    peer_manager.cpp
 )
 
 target_include_directories(magnet_protocols
