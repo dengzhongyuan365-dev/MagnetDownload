@@ -4,6 +4,8 @@
 #include <thread>
 #include <atomic>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -14,7 +16,7 @@ namespace magnet::utils {
         DEBUG = 1,
         INFO = 2,
         WARN = 3,
-        ERROR = 4,
+        ERR = 4,     
         FATAL = 5
     };
 
@@ -53,7 +55,7 @@ namespace magnet::utils {
 
         void info(const std::string& message) { log(LogLevel::INFO, message);}
         void warn(const std::string& message) { log(LogLevel::WARN, message);}
-        void error(const std::string& message) { log(LogLevel::ERROR, message);}
+        void error(const std::string& message) { log(LogLevel::ERR, message);}
         void fatal(const std::string& message) { log(LogLevel::FATAL, message);}
 
         template<typename... Args>
@@ -107,12 +109,12 @@ namespace magnet::utils {
         void format_impl(std::ostringstream& oss, const std::string& format, size_t& pos, T&& value);
 
         template<typename T, typename... Args>
-        void format_impl(std::ostringstream& oss, const std::string format, size_t pos, T&&value, Args&&...args);
+        void format_impl(std::ostringstream& oss, const std::string& format, size_t& pos, T&& value, Args&&... args);
 
         std::string format_string(const std::string& format);
 
         template<typename... Args>
-        std::string fornat_string(const std::string& format, Args&&... args);
+        std::string format_string(const std::string& format, Args&&... args);
 
         // config
     private:
