@@ -76,16 +76,16 @@ struct PeerState {
 // ============================================================================
 
 /**
- * @struct PeerInfo
- * @brief Peer 基本信息
+ * @struct ConnectedPeerInfo
+ * @brief 已连接 Peer 的详细信息（包含握手后获得的 peer_id）
  */
-struct PeerInfo {
+struct ConnectedPeerInfo {
     std::string ip;
     uint16_t port{0};
     std::array<uint8_t, 20> peer_id{};  // 握手后获得
     
-    PeerInfo() = default;
-    PeerInfo(const std::string& ip_, uint16_t port_) : ip(ip_), port(port_) {}
+    ConnectedPeerInfo() = default;
+    ConnectedPeerInfo(const std::string& ip_, uint16_t port_) : ip(ip_), port(port_) {}
     
     std::string toString() const {
         return ip + ":" + std::to_string(port);
@@ -296,7 +296,7 @@ public:
     PeerState peerState() const;
     
     /** @brief 获取 Peer 信息 */
-    const PeerInfo& peerInfo() const { return peer_info_; }
+    const ConnectedPeerInfo& peerInfo() const { return peer_info_; }
     
     /** @brief 获取 Peer 的分片位图 */
     std::vector<bool> peerBitfield() const;
@@ -368,7 +368,7 @@ private:
     // 身份信息
     InfoHash info_hash_;
     std::string my_peer_id_;
-    PeerInfo peer_info_;
+    ConnectedPeerInfo peer_info_;
     
     // 状态
     std::atomic<PeerConnectionState> state_{PeerConnectionState::Disconnected};

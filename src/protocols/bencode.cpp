@@ -15,6 +15,7 @@ namespace {
 
     BencodeValue::BencodeValue(BencodeInt i) : data_(i) {}
     BencodeValue::BencodeValue(const BencodeString& s): data_(s) {}
+    BencodeValue::BencodeValue(const char* s) : data_(BencodeString(s)) {}
     BencodeValue::BencodeValue(const BencodeList& list): data_(list) {}
     BencodeValue::BencodeValue(const BencodeDict& dict): data_(dict) {}
 

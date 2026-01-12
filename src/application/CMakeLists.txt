@@ -5,8 +5,7 @@ message(STATUS "Configuring Main Application...")
 
 add_executable(magnetdownload
     main.cpp                        # 主程序入口
-    # application.cpp               # 你将要实现的
-    # download_manager.cpp          # 你将要实现的
+    download_controller.cpp         # 下载控制器
 )
 
 target_include_directories(magnetdownload
