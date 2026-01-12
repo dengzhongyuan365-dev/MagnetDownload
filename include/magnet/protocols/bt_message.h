@@ -25,7 +25,8 @@ enum class BtMessageType : uint8_t {
     Request = 6,            // 请求数据块
     Piece = 7,              // 数据块
     Cancel = 8,             // 取消请求
-    Port = 9                // DHT 端口
+    Port = 9,               // DHT 端口
+    Extended = 20           // BEP-10 扩展消息
 };
 
 /**
@@ -44,6 +45,7 @@ inline const char* btMessageTypeToString(BtMessageType type) {
         case BtMessageType::Piece: return "Piece";
         case BtMessageType::Cancel: return "Cancel";
         case BtMessageType::Port: return "Port";
+        case BtMessageType::Extended: return "Extended";
         default: return "Unknown";
     }
 }
@@ -70,9 +72,26 @@ struct Handshake {
     static constexpr uint8_t kProtocolLength = 19;
     static constexpr const char* kProtocol = "BitTorrent protocol";
     
+    // BEP-10 扩展协议标志位（reserved 字节的第 44 位）
+    static constexpr uint8_t kExtensionBit = 0x10;  // reserved[5] 的第 4 位
+    
     std::array<uint8_t, 8> reserved{};      // 保留字节（用于扩展协议）
     std::array<uint8_t, 20> info_hash{};    // 文件的 info_hash
     std::array<uint8_t, 20> peer_id{};      // Peer ID
+    
+    /**
+     * @brief 设置支持 BEP-10 扩展协议
+     */
+    void setExtensionSupport() {
+        reserved[5] |= kExtensionBit;
+    }
+    
+    /**
+     * @brief 检查是否支持 BEP-10 扩展协议
+     */
+    bool supportsExtension() const {
+        return (reserved[5] & kExtensionBit) != 0;
+    }
     
     /**
      * @brief 编码为字节数组
@@ -241,6 +260,13 @@ public:
      */
     static BtMessage createPort(uint16_t port);
     
+    /**
+     * @brief 创建 Extended 消息
+     * @param extension_id 扩展消息 ID（0 = 握手，其他为具体扩展）
+     * @param payload 消息内容
+     */
+    static BtMessage createExtended(uint8_t extension_id, const std::vector<uint8_t>& payload);
+    
     // ========================================================================
     // 编解码
     // ========================================================================
@@ -284,6 +310,10 @@ public:
     bool isPiece() const { return type_ == BtMessageType::Piece; }
     bool isCancel() const { return type_ == BtMessageType::Cancel; }
     bool isPort() const { return type_ == BtMessageType::Port; }
+    bool isExtended() const { return type_ == BtMessageType::Extended; }
+    
+    /** @brief 是否为扩展握手消息 */
+    bool isExtensionHandshake() const { return isExtended() && extended_id_ == 0; }
     
     // ========================================================================
     // 字段访问
@@ -306,6 +336,12 @@ public:
     
     /** @brief 获取位图（Bitfield） */
     const std::vector<bool>& bitfield() const { return bitfield_; }
+    
+    /** @brief 获取扩展消息 ID（Extended） */
+    uint8_t extendedId() const { return extended_id_; }
+    
+    /** @brief 获取扩展消息负载（Extended，不含扩展 ID） */
+    const std::vector<uint8_t>& payload() const { return payload_; }
     
     // ========================================================================
     // 结构化数据访问
@@ -343,6 +379,10 @@ private:
     
     // Bitfield
     std::vector<bool> bitfield_;
+    
+    // Extended
+    uint8_t extended_id_{0};
+    std::vector<uint8_t> payload_;
 };
 
 // ============================================================================

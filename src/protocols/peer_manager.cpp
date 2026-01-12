@@ -277,6 +277,10 @@ void PeerManager::setNeedMorePeersCallback(NeedMorePeersCallback callback) {
     need_more_peers_callback_ = std::move(callback);
 }
 
+void PeerManager::setNewPeerCallback(NewPeerCallback callback) {
+    new_peer_callback_ = std::move(callback);
+}
+
 // ============================================================================
 // 内部方法
 // ============================================================================
@@ -409,6 +413,19 @@ void PeerManager::onPeerConnected(const network::TcpEndpoint& endpoint) {
         peer_status_callback_(endpoint, true);
     }
     
+    // 通知新连接的 Peer（用于元数据获取）
+    std::shared_ptr<PeerConnection> peer_conn;
+    {
+        std::lock_guard<std::mutex> lock(peers_mutex_);
+        auto it = peers_.find(key);
+        if (it != peers_.end()) {
+            peer_conn = it->second.connection;
+        }
+    }
+    if (new_peer_callback_ && peer_conn) {
+        new_peer_callback_(peer_conn);
+    }
+    
     // 尝试连接更多
     tryConnectMore();
 }
@@ -513,6 +530,7 @@ void PeerManager::onPeerMessage(const network::TcpEndpoint& endpoint,
 
 void PeerManager::tryConnectMore() {
     if (!running_.load()) {
+        LOG_DEBUG("[PeerManager] tryConnectMore: not running");
         return;
     }
     
@@ -525,11 +543,17 @@ void PeerManager::tryConnectMore() {
         size_t current_connecting = connecting_peers_.size();
         size_t current_connected = connected_peers_.size();
         
+        LOG_DEBUG("[PeerManager] tryConnectMore: pending=" + std::to_string(pending_peers_.size()) +
+                  " connecting=" + std::to_string(current_connecting) +
+                  " connected=" + std::to_string(current_connected));
+        
         if (current_connecting >= config_.max_connecting) {
+            LOG_DEBUG("[PeerManager] tryConnectMore: max_connecting reached");
             return;
         }
         
         if (current_connected + current_connecting >= config_.max_connections) {
+            LOG_DEBUG("[PeerManager] tryConnectMore: max_connections reached");
             return;
         }
         
@@ -553,14 +577,18 @@ void PeerManager::tryConnectMore() {
                     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                         now - it->second.last_connect_attempt);
                     if (elapsed < config_.reconnect_delay) {
+                        LOG_DEBUG("[PeerManager] Skipping " + key + " due to reconnect delay");
                         continue;
                     }
                 }
                 
                 to_connect.push_back(it->second.endpoint);
+                LOG_DEBUG("[PeerManager] Selected peer to connect: " + it->second.endpoint.toString());
             }
         }
     }
+    
+    LOG_DEBUG("[PeerManager] Will connect to " + std::to_string(to_connect.size()) + " peers");
     
     // 连接选中的 Peer
     for (const auto& ep : to_connect) {

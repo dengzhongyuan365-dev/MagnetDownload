@@ -1,4 +1,5 @@
 #include "magnet/protocols/peer_connection.h"
+#include "magnet/protocols/metadata_extension.h"
 #include "magnet/utils/logger.h"
 
 namespace magnet::protocols {
@@ -433,6 +434,9 @@ void PeerConnection::processMessages() {
 }
 
 void PeerConnection::handleMessage(const BtMessage& msg) {
+    LOG_DEBUG("Received BT message type=" + std::to_string(static_cast<int>(msg.type())) +
+              " from " + peer_info_.toString());
+    
     switch (msg.type()) {
         case BtMessageType::KeepAlive:
             // 只更新活动时间，已在 onReceive 中处理
@@ -540,6 +544,10 @@ void PeerConnection::handleMessage(const BtMessage& msg) {
         case BtMessageType::Port:
             // DHT 端口通知
             break;
+            
+        case BtMessageType::Extended:
+            handleExtendedMessage(msg);
+            break;
     }
     
     // 通知消息回调
@@ -577,6 +585,65 @@ void PeerConnection::setState(PeerConnectionState new_state) {
 void PeerConnection::reportError(const std::string& error) {
     if (error_callback_) {
         error_callback_(error);
+    }
+}
+
+void PeerConnection::setExtensionHandshakeCallback(ExtensionHandshakeCallback callback) {
+    extension_handshake_callback_ = std::move(callback);
+}
+
+void PeerConnection::setMetadataMessageCallback(MetadataMessageCallback callback) {
+    metadata_message_callback_ = std::move(callback);
+}
+
+void PeerConnection::handleExtendedMessage(const BtMessage& msg) {
+    LOG_DEBUG("handleExtendedMessage called");
+    
+    if (!msg.isExtended()) {
+        LOG_WARNING("handleExtendedMessage: message is not Extended type!");
+        return;
+    }
+    
+    uint8_t ext_id = msg.extendedId();
+    const auto& payload = msg.payload();
+    LOG_DEBUG("Extended message: id=" + std::to_string(ext_id) + 
+              ", payload_size=" + std::to_string(payload.size()));
+    
+    if (ext_id == extension::kExtensionHandshakeId) {
+        // 扩展握手消息
+        auto handshake = MetadataExtension::parseExtensionHandshake(payload);
+        if (handshake.has_value()) {
+            supports_extension_ = true;
+            peer_metadata_ext_id_ = handshake->metadataExtensionId();
+            
+            LOG_DEBUG("Received extension handshake from " + peer_info_.toString() +
+                      ", ut_metadata=" + std::to_string(peer_metadata_ext_id_) +
+                      ", metadata_size=" + 
+                      (handshake->metadata_size.has_value() ? 
+                       std::to_string(handshake->metadata_size.value()) : "none"));
+            
+            if (extension_handshake_callback_) {
+                extension_handshake_callback_(handshake.value());
+            }
+        } else {
+            LOG_WARNING("Failed to parse extension handshake from " + peer_info_.toString());
+        }
+    } else if (ext_id == 1) {  // 我方的 ut_metadata ID
+        // 元数据消息
+        auto message = MetadataExtension::parseMetadataMessage(payload);
+        if (message.has_value()) {
+            LOG_DEBUG("Received metadata message: type=" + 
+                      std::to_string(static_cast<int>(message->type)) +
+                      ", piece=" + std::to_string(message->piece_index));
+            
+            if (metadata_message_callback_) {
+                metadata_message_callback_(message.value());
+            }
+        } else {
+            LOG_WARNING("Failed to parse metadata message from " + peer_info_.toString());
+        }
+    } else {
+        LOG_DEBUG("Received unknown extension message id=" + std::to_string(ext_id));
     }
 }
 

@@ -122,6 +122,9 @@ using PeerStatusCallback = std::function<void(
 /** @brief 需要更多 Peer 回调 */
 using NeedMorePeersCallback = std::function<void()>;
 
+/** @brief 新 Peer 连接成功回调 */
+using NewPeerCallback = std::function<void(std::shared_ptr<PeerConnection> peer)>;
+
 // ============================================================================
 // PeerManager 类
 // ============================================================================
@@ -290,6 +293,9 @@ public:
     
     /** @brief 设置需要更多 Peer 回调 */
     void setNeedMorePeersCallback(NeedMorePeersCallback callback);
+    
+    /** @brief 设置新 Peer 连接成功回调 */
+    void setNewPeerCallback(NewPeerCallback callback);
 
 private:
     // ========================================================================
@@ -382,6 +388,7 @@ private:
     PieceReceivedCallback piece_callback_;
     PeerStatusCallback peer_status_callback_;
     NeedMorePeersCallback need_more_peers_callback_;
+    NewPeerCallback new_peer_callback_;
     
     // 辅助方法
     static std::string endpointToKey(const network::TcpEndpoint& ep) {

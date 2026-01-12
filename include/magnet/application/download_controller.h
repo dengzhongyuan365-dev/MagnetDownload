@@ -4,6 +4,7 @@
 #include "../protocols/dht_client.h"
 #include "../protocols/peer_manager.h"
 #include "../protocols/bt_message.h"
+#include "../protocols/metadata_fetcher.h"
 
 #include <asio.hpp>
 #include <functional>
@@ -361,6 +362,22 @@ private:
     void onPeerStatusChanged(const network::TcpEndpoint& endpoint, bool connected);
     
     /**
+     * @brief 初始化元数据获取器
+     */
+    void initializeMetadataFetcher();
+    
+    /**
+     * @brief 处理新 Peer 连接（用于元数据获取）
+     */
+    void onNewPeerConnected(std::shared_ptr<protocols::PeerConnection> peer);
+    
+    /**
+     * @brief 元数据获取完成回调
+     */
+    void onMetadataFetched(const protocols::TorrentMetadata* metadata, 
+                           protocols::MetadataError error);
+    
+    /**
      * @brief 初始化分片状态
      */
     void initializePieces();
@@ -447,6 +464,7 @@ private:
     // 组件
     std::shared_ptr<protocols::DhtClient> dht_client_;
     std::shared_ptr<protocols::PeerManager> peer_manager_;
+    std::shared_ptr<protocols::MetadataFetcher> metadata_fetcher_;
     std::string my_peer_id_;
     
     // 进度

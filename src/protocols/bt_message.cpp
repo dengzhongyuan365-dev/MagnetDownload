@@ -163,6 +163,14 @@ BtMessage BtMessage::createPort(uint16_t port) {
     return msg;
 }
 
+BtMessage BtMessage::createExtended(uint8_t extension_id, const std::vector<uint8_t>& payload) {
+    BtMessage msg;
+    msg.type_ = BtMessageType::Extended;
+    msg.extended_id_ = extension_id;
+    msg.payload_ = payload;
+    return msg;
+}
+
 // ============================================================================
 // BtMessage 编码
 // ============================================================================
@@ -234,6 +242,14 @@ std::vector<uint8_t> BtMessage::encode() const {
             bt::writeUint32BE(result, 3);
             result.push_back(static_cast<uint8_t>(type_));
             bt::writeUint16BE(result, port_);
+            break;
+            
+        case BtMessageType::Extended:
+            // length = 2 + N, id + extension_id + payload
+            bt::writeUint32BE(result, static_cast<uint32_t>(2 + payload_.size()));
+            result.push_back(static_cast<uint8_t>(type_));
+            result.push_back(extended_id_);
+            result.insert(result.end(), payload_.begin(), payload_.end());
             break;
     }
     
@@ -342,6 +358,15 @@ std::optional<BtMessage> BtMessage::decode(const uint8_t* data, size_t len) {
             if (payload_size < 2) return std::nullopt;
             msg.type_ = BtMessageType::Port;
             msg.port_ = bt::readUint16BE(payload);
+            break;
+            
+        case 20:  // Extended (BEP-10)
+            if (payload_size < 1) return std::nullopt;
+            msg.type_ = BtMessageType::Extended;
+            msg.extended_id_ = payload[0];
+            if (payload_size > 1) {
+                msg.payload_.assign(payload + 1, payload + payload_size);
+            }
             break;
             
         default:

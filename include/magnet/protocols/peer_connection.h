@@ -160,6 +160,16 @@ using PeerErrorCallback = std::function<void(const std::string& error)>;
 /** @brief 连接完成回调 */
 using PeerConnectCallback = std::function<void(bool success)>;
 
+// 前向声明
+struct ExtensionHandshake;
+struct MetadataMessage;
+
+/** @brief 扩展握手回调 */
+using ExtensionHandshakeCallback = std::function<void(const ExtensionHandshake& handshake)>;
+
+/** @brief 元数据消息回调 */
+using MetadataMessageCallback = std::function<void(const MetadataMessage& message)>;
+
 // ============================================================================
 // PeerConnection 类
 // ============================================================================
@@ -325,6 +335,32 @@ public:
     
     /** @brief 设置错误回调 */
     void setErrorCallback(PeerErrorCallback callback);
+    
+    /** @brief 设置扩展握手回调 */
+    void setExtensionHandshakeCallback(ExtensionHandshakeCallback callback);
+    
+    /** @brief 设置元数据消息回调 */
+    void setMetadataMessageCallback(MetadataMessageCallback callback);
+    
+    // ========================================================================
+    // 消息发送
+    // ========================================================================
+    
+    /** 
+     * @brief 发送 BT 消息
+     * @param msg 要发送的消息
+     */
+    void sendMessage(const BtMessage& msg);
+    
+    /**
+     * @brief 是否支持 BEP-10 扩展协议
+     */
+    bool supportsExtension() const { return supports_extension_; }
+    
+    /**
+     * @brief 获取对方的 ut_metadata 扩展 ID
+     */
+    uint8_t peerMetadataExtensionId() const { return peer_metadata_ext_id_; }
 
 private:
     // ========================================================================
@@ -352,8 +388,8 @@ private:
     /** @brief 处理单个消息 */
     void handleMessage(const BtMessage& msg);
     
-    /** @brief 发送消息 */
-    void sendMessage(const BtMessage& msg);
+    /** @brief 处理扩展消息 */
+    void handleExtendedMessage(const BtMessage& msg);
     
     /** @brief 更新状态并通知 */
     void setState(PeerConnectionState new_state);
@@ -397,6 +433,12 @@ private:
     PeerMessageCallback message_callback_;
     PeerPieceCallback piece_callback_;
     PeerErrorCallback error_callback_;
+    ExtensionHandshakeCallback extension_handshake_callback_;
+    MetadataMessageCallback metadata_message_callback_;
+    
+    // 扩展协议相关
+    bool supports_extension_{false};      // 对方是否支持扩展协议
+    uint8_t peer_metadata_ext_id_{0};     // 对方的 ut_metadata 扩展 ID
 };
 
 } // namespace magnet::protocols

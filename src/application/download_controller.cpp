@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
 
 namespace magnet::application {
 
@@ -228,6 +229,121 @@ void DownloadController::setMetadata(const TorrentMetadata& metadata) {
 }
 
 // ============================================================================
+// 元数据获取
+// ============================================================================
+
+void DownloadController::initializeMetadataFetcher() {
+    if (metadata_fetcher_) {
+        return;  // 已经初始化
+    }
+    
+    protocols::InfoHash info_hash;
+    {
+        std::lock_guard<std::mutex> lock(metadata_mutex_);
+        info_hash = metadata_.info_hash;
+    }
+    
+    protocols::MetadataFetcherConfig config;
+    config.fetch_timeout = config_.metadata_timeout;
+    
+    metadata_fetcher_ = std::make_shared<protocols::MetadataFetcher>(
+        io_context_, info_hash, config);
+    
+    auto self = shared_from_this();
+    metadata_fetcher_->start([self](const protocols::TorrentMetadata* metadata, 
+                                     protocols::MetadataError error) {
+        self->onMetadataFetched(metadata, error);
+    });
+    
+    LOG_INFO("MetadataFetcher initialized");
+}
+
+void DownloadController::onNewPeerConnected(std::shared_ptr<protocols::PeerConnection> peer) {
+    if (!peer) {
+        LOG_DEBUG("onNewPeerConnected: peer is null");
+        return;
+    }
+    
+    LOG_INFO("New peer connected: " + peer->peerInfo().toString());
+    
+    auto current_state = state_.load();
+    LOG_DEBUG("onNewPeerConnected: state=" + std::string(downloadStateToString(current_state)) +
+              ", metadata_fetcher=" + (metadata_fetcher_ ? "yes" : "no"));
+    
+    // 如果正在获取元数据，将新连接的 Peer 添加到 MetadataFetcher
+    if (current_state == DownloadState::ResolvingMetadata && metadata_fetcher_) {
+        LOG_INFO("Adding peer to MetadataFetcher");
+        metadata_fetcher_->addPeer(peer);
+        
+        // 设置回调以处理扩展握手和元数据消息
+        auto self = shared_from_this();
+        auto* raw_peer = peer.get();
+        
+        peer->setExtensionHandshakeCallback(
+            [self, raw_peer](const protocols::ExtensionHandshake& handshake) {
+                if (self->metadata_fetcher_) {
+                    self->metadata_fetcher_->onExtensionHandshake(raw_peer, handshake);
+                }
+            });
+        
+        peer->setMetadataMessageCallback(
+            [self, raw_peer](const protocols::MetadataMessage& message) {
+                if (self->metadata_fetcher_) {
+                    self->metadata_fetcher_->onMetadataMessage(raw_peer, message);
+                }
+            });
+    }
+}
+
+void DownloadController::onMetadataFetched(const protocols::TorrentMetadata* metadata,
+                                            protocols::MetadataError error) {
+    if (error != protocols::MetadataError::Success || !metadata) {
+        LOG_ERROR("Failed to fetch metadata, error: " + std::to_string(static_cast<int>(error)));
+        fail("Failed to fetch torrent metadata");
+        return;
+    }
+    
+    LOG_INFO("Metadata fetched successfully: " + metadata->name);
+    
+    // 转换并设置元数据
+    TorrentMetadata internal_metadata;
+    internal_metadata.name = metadata->name;
+    internal_metadata.info_hash = metadata->info_hash;
+    internal_metadata.piece_length = metadata->piece_length;
+    internal_metadata.total_size = metadata->totalSize();
+    internal_metadata.piece_count = metadata->pieceCount();
+    
+    // 复制 piece hashes
+    internal_metadata.piece_hashes.resize(metadata->piece_hashes.size());
+    for (size_t i = 0; i < metadata->piece_hashes.size(); ++i) {
+        std::memcpy(internal_metadata.piece_hashes[i].data(), 
+                    metadata->piece_hashes[i].data(), 20);
+    }
+    
+    // 复制文件信息
+    if (metadata->length.has_value()) {
+        TorrentMetadata::FileInfo fi;
+        fi.path = metadata->name;
+        fi.size = metadata->length.value();
+        internal_metadata.files.push_back(fi);
+    } else {
+        for (const auto& f : metadata->files) {
+            TorrentMetadata::FileInfo fi;
+            fi.path = f.path;
+            fi.size = f.length;
+            internal_metadata.files.push_back(fi);
+        }
+    }
+    
+    // 停止 MetadataFetcher
+    metadata_fetcher_->stop();
+    metadata_fetcher_.reset();
+    
+    // 设置元数据（会触发状态转换到 Downloading）
+    setMetadata(internal_metadata);
+}
+
+// ============================================================================
 // 内部方法
 // ============================================================================
 
@@ -350,7 +466,18 @@ void DownloadController::onPeersFound(const std::vector<protocols::PeerInfo>& pe
             self->findPeers();
         });
         
+        // 设置新 Peer 连接回调（用于元数据获取）
+        peer_manager_->setNewPeerCallback(
+            [self](std::shared_ptr<protocols::PeerConnection> peer) {
+                self->onNewPeerConnected(peer);
+            });
+        
         peer_manager_->start();
+    }
+    
+    // 如果还没有元数据，初始化 MetadataFetcher
+    if (state_.load() == DownloadState::ResolvingMetadata && !metadata_fetcher_) {
+        initializeMetadataFetcher();
     }
     
     // 添加 Peer
