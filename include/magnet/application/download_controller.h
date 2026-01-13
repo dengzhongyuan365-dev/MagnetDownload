@@ -175,6 +175,7 @@ struct PieceInfo {
     size_t downloaded{0};
     std::vector<bool> blocks;           // 块下载状态
     std::vector<uint8_t> data;          // 分片数据
+    std::chrono::steady_clock::time_point request_time;  // 请求时间（用于超时检测）
     
     bool isComplete() const {
         return downloaded >= size;
@@ -397,6 +398,12 @@ private:
      * @brief 请求更多数据块
      */
     void requestMoreBlocks();
+    
+    /**
+     * @brief 重置超时的 pending pieces
+     * 将长时间没有响应的 pending pieces 重置为 missing 状态
+     */
+    void resetTimedOutPieces();
     
     /**
      * @brief 验证分片

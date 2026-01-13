@@ -702,6 +702,7 @@ void DownloadController::requestPiece(uint32_t piece_index) {
     // 只有当成功发送了请求时，才将 piece 标记为 Pending
     if (requests_sent > 0) {
         piece.state = PieceState::Pending;
+        piece.request_time = std::chrono::steady_clock::now();  // 记录请求时间
         LOG_DEBUG("Requested piece " + std::to_string(piece_index) + 
                   " with " + std::to_string(requests_sent) + " blocks");
     } else {
@@ -995,6 +996,8 @@ void DownloadController::startDownloadStallTimer() {
             } else {
                 LOG_WARNING("No download progress for " + std::to_string(stall_duration.count()) + 
                             " seconds, will retry...");
+                // 重置超时的 pending pieces
+                self->resetTimedOutPieces();
                 // 尝试请求更多数据
                 self->requestMoreBlocks();
             }
@@ -1003,6 +1006,33 @@ void DownloadController::startDownloadStallTimer() {
         // 继续检测
         self->startDownloadStallTimer();
     });
+}
+
+void DownloadController::resetTimedOutPieces() {
+    std::lock_guard<std::mutex> lock(pieces_mutex_);
+    
+    auto now = std::chrono::steady_clock::now();
+    const auto timeout = std::chrono::seconds(30);  // 30秒超时
+    size_t reset_count = 0;
+    
+    for (auto& piece : pieces_) {
+        if (piece.state == PieceState::Pending) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                now - piece.request_time);
+            
+            if (elapsed >= timeout) {
+                // 重置为 Missing 状态，允许重新请求
+                piece.state = PieceState::Missing;
+                reset_count++;
+                LOG_DEBUG("Reset timed out piece " + std::to_string(piece.index) + 
+                          " after " + std::to_string(elapsed.count()) + " seconds");
+            }
+        }
+    }
+    
+    if (reset_count > 0) {
+        LOG_INFO("Reset " + std::to_string(reset_count) + " timed out pieces");
+    }
 }
 
 size_t DownloadController::getPieceSize(uint32_t piece_index) const {
