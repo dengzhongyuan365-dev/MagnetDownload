@@ -58,11 +58,14 @@ bool DownloadController::start(const DownloadConfig& config) {
     LOG_INFO("Starting download: " + config.magnet_uri);
     
     // 解析 Magnet URI
+    LOG_INFO("Parsing magnet URI: " + config.magnet_uri);
     auto parse_result = protocols::parseMagnetUri(config.magnet_uri);
     if (!parse_result.is_ok()) {
+        LOG_ERROR("Parse error code: " + std::to_string(static_cast<int>(parse_result.error())));
         fail("Failed to parse magnet URI");
         return false;
     }
+    LOG_INFO("Magnet URI parsed successfully");
     
     auto& magnet_info = parse_result.value();
     

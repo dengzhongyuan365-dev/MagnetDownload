@@ -203,7 +203,8 @@ int main(int argc, char* argv[]) {
             }
         } else if (arg == "-v" || arg == "--verbose") {
             verbose = true;
-        } else if (arg[0] != '-') {
+        } else if (arg[0] != '-' && magnet_uri.empty()) {
+            // 只有当magnet_uri还没有设置时，才设置第一个非选项参数为magnet_uri
             magnet_uri = arg;
         }
     }
