@@ -15,6 +15,7 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <algorithm>
 
 namespace magnet::protocols {
 
@@ -111,7 +112,7 @@ struct LookupState {
     
     std::set<NodeId> queried;                 // 已查询的节点
     std::set<NodeId> pending;                 // 正在查询中的节点
-    std::map<NodeId, DhtNode> candidates;     // 候选节点（按距离排序）
+    std::map<NodeId, DhtNode> candidates;     // 候选节点（按 NodeId 存储）
     
     std::vector<PeerInfo> found_peers;        // 找到的 Peers
     std::string token;                        // 用于 announce 的 token
@@ -144,17 +145,28 @@ struct LookupState {
     }
     
     /**
-     * @brief 获取下一批要查询的节点
+     * @brief 获取下一批要查询的节点（按距离排序）
      */
     std::vector<DhtNode> getNextNodes(size_t count) {
-        std::vector<DhtNode> result;
-        
+        // 收集所有未查询的候选节点
+        std::vector<DhtNode> unqueried;
         for (const auto& [node_id, node] : candidates) {
-            if (result.size() >= count) break;
             if (queried.find(node_id) == queried.end() && 
                 pending.find(node_id) == pending.end()) {
-                result.push_back(node);
+                unqueried.push_back(node);
             }
+        }
+        
+        // 按到目标的距离排序（最近的在前）
+        std::sort(unqueried.begin(), unqueried.end(), 
+            [this](const DhtNode& a, const DhtNode& b) {
+                return target_id.compareDistance(a.id_, b.id_) < 0;
+            });
+        
+        // 返回最近的 count 个
+        std::vector<DhtNode> result;
+        for (size_t i = 0; i < std::min(count, unqueried.size()); ++i) {
+            result.push_back(unqueried[i]);
         }
         
         return result;

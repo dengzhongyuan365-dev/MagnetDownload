@@ -67,10 +67,14 @@ std::optional<Handshake> Handshake::decode(const uint8_t* data, size_t len) {
 Handshake Handshake::create(const InfoHash& info_hash, const std::string& peer_id) {
     Handshake hs;
     
+    // 设置支持 BEP-10 扩展协议（这是获取元数据的关键！）
+    hs.setExtensionSupport();
+    
     // 复制 info_hash
     std::memcpy(hs.info_hash.data(), info_hash.bytes().data(), 20);
     
     // 复制 peer_id（截断或填充到 20 字节）
+    hs.peer_id.fill(0);  // 先清零
     size_t copy_len = std::min(peer_id.size(), size_t(20));
     std::memcpy(hs.peer_id.data(), peer_id.data(), copy_len);
     

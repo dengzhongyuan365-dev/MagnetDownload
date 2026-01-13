@@ -351,16 +351,12 @@ void DownloadController::initializeDht() {
     protocols::DhtClientConfig dht_config;
     dht_config.listen_port = 0;  // 随机端口
     
-    // 添加引导节点 - 包含多个备用节点以提高可用性
+    // 添加引导节点 - 使用稳定可靠的公共 DHT 节点
     dht_config.bootstrap_nodes = {
         {"router.bittorrent.com", 6881},
         {"router.utorrent.com", 6881},
         {"dht.transmissionbt.com", 6881},
-        {"dht.libtorrent.org", 25401},
-        // 备用节点
-        {"dht.aelitis.com", 6881},
-        {"87.98.162.88", 6881},      // 欧洲节点 IP
-        {"82.221.103.244", 6881}     // 备用节点 IP
+        {"dht.libtorrent.org", 25401}
     };
     
     // 增加超时时间（网络不稳定时更有可能成功）

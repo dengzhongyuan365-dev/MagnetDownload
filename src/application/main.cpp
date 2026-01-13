@@ -216,9 +216,9 @@ int main(int argc, char* argv[]) {
     
     // Setup logging
     if (verbose) {
-        utils::Logger::instance().set_level(utils::LogLevel::DEBUG);
+        utils::Logger::instance().set_level(utils::LogLevel::Debug);
     } else {
-        utils::Logger::instance().set_level(utils::LogLevel::INFO);
+        utils::Logger::instance().set_level(utils::LogLevel::Info);
     }
     utils::Logger::instance().set_console_output(verbose);
     
@@ -275,7 +275,7 @@ int main(int argc, char* argv[]) {
         config.magnet_uri = magnet_uri;
         config.save_path = output_path;
         config.max_connections = max_connections;
-        config.metadata_timeout = std::chrono::seconds(60);  // 60秒超时
+        config.metadata_timeout = std::chrono::seconds(120);  // 增加到 120 秒超时
         
         // Start download
         std::cout << "[*] Starting download..." << std::endl;

@@ -27,8 +27,8 @@ namespace magnet::protocols {
 
 DhtMessage DhtMessage::createPing(const NodeId& my_id) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::QUERY;
-    msg.query_type_ = DhtQueryType::PING;
+    msg.type_ = DhtMessageType::Query;
+    msg.query_type_ = DhtQueryType::Ping;
     msg.transaction_id_ = generateTransactionId();
     msg.sender_id_ = my_id;
     return msg;
@@ -36,8 +36,8 @@ DhtMessage DhtMessage::createPing(const NodeId& my_id) {
 
 DhtMessage DhtMessage::createFindNode(const NodeId& my_id, const NodeId& target) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::QUERY;
-    msg.query_type_ = DhtQueryType::FIND_NODE;
+    msg.type_ = DhtMessageType::Query;
+    msg.query_type_ = DhtQueryType::FindNode;
     msg.transaction_id_ = generateTransactionId();
     msg.sender_id_ = my_id;
     msg.target_id_ = target;
@@ -46,8 +46,8 @@ DhtMessage DhtMessage::createFindNode(const NodeId& my_id, const NodeId& target)
 
 DhtMessage DhtMessage::createGetPeers(const NodeId& my_id, const InfoHash& info_hash) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::QUERY;
-    msg.query_type_ = DhtQueryType::GET_PEERS;
+    msg.type_ = DhtMessageType::Query;
+    msg.query_type_ = DhtQueryType::GetPeers;
     msg.transaction_id_ = generateTransactionId();
     msg.sender_id_ = my_id;
     msg.info_hash_ = info_hash;
@@ -60,8 +60,8 @@ DhtMessage DhtMessage::createAnnouncePeer(const NodeId& my_id,
                                            const std::string& token,
                                            bool implied_port) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::QUERY;
-    msg.query_type_ = DhtQueryType::ANNOUNCE_PEER;
+    msg.type_ = DhtMessageType::Query;
+    msg.query_type_ = DhtQueryType::AnnouncePeer;
     msg.transaction_id_ = generateTransactionId();
     msg.sender_id_ = my_id;
     msg.info_hash_ = info_hash;
@@ -78,7 +78,7 @@ DhtMessage DhtMessage::createAnnouncePeer(const NodeId& my_id,
 DhtMessage DhtMessage::createPingResponse(const std::string& transaction_id,
                                            const NodeId& my_id) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::RESPONSE;
+    msg.type_ = DhtMessageType::Response;
     msg.transaction_id_ = transaction_id;
     msg.sender_id_ = my_id;
     return msg;
@@ -88,7 +88,7 @@ DhtMessage DhtMessage::createFindNodeResponse(const std::string& transaction_id,
                                                const NodeId& my_id,
                                                const std::vector<DhtNode>& nodes) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::RESPONSE;
+    msg.type_ = DhtMessageType::Response;
     msg.transaction_id_ = transaction_id;
     msg.sender_id_ = my_id;
     msg.nodes_data_ = nodesToCompact(nodes);
@@ -100,7 +100,7 @@ DhtMessage DhtMessage::createGetPeersResponseWithPeers(const std::string& transa
                                                         const std::string& token,
                                                         const std::vector<PeerInfo>& peers) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::RESPONSE;
+    msg.type_ = DhtMessageType::Response;
     msg.transaction_id_ = transaction_id;
     msg.sender_id_ = my_id;
     msg.token_ = token;
@@ -113,7 +113,7 @@ DhtMessage DhtMessage::createGetPeersResponseWithNodes(const std::string& transa
                                                         const std::string& token,
                                                         const std::vector<DhtNode>& nodes) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::RESPONSE;
+    msg.type_ = DhtMessageType::Response;
     msg.transaction_id_ = transaction_id;
     msg.sender_id_ = my_id;
     msg.token_ = token;
@@ -125,7 +125,7 @@ DhtMessage DhtMessage::createError(const std::string& transaction_id,
                                     DhtErrorCode code,
                                     const std::string& message) {
     DhtMessage msg;
-    msg.type_ = DhtMessageType::DHT_ERROR;
+    msg.type_ = DhtMessageType::Error;
     msg.transaction_id_ = transaction_id;
     msg.error_ = DhtError(code, message);
     return msg;
@@ -173,7 +173,7 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
     
     if (y == krpc::kTypeQuery) {
         // Query message
-        msg.type_ = DhtMessageType::QUERY;
+        msg.type_ = DhtMessageType::Query;
         
         // Parse query method
         auto q_it = dict.find(krpc::kQueryMethod);
@@ -184,13 +184,13 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
         
         const std::string& q = q_it->second.asString();
         if (q == krpc::kMethodPing) {
-            msg.query_type_ = DhtQueryType::PING;
+            msg.query_type_ = DhtQueryType::Ping;
         } else if (q == krpc::kMethodFindNode) {
-            msg.query_type_ = DhtQueryType::FIND_NODE;
+            msg.query_type_ = DhtQueryType::FindNode;
         } else if (q == krpc::kMethodGetPeers) {
-            msg.query_type_ = DhtQueryType::GET_PEERS;
+            msg.query_type_ = DhtQueryType::GetPeers;
         } else if (q == krpc::kMethodAnnouncePeer) {
-            msg.query_type_ = DhtQueryType::ANNOUNCE_PEER;
+            msg.query_type_ = DhtQueryType::AnnouncePeer;
         } else {
             LOG_WARN("Unknown query type: " + q);
             return std::nullopt;
@@ -217,7 +217,7 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
         }
         
         // Parse target for find_node
-        if (msg.query_type_ == DhtQueryType::FIND_NODE) {
+        if (msg.query_type_ == DhtQueryType::FindNode) {
             auto target_it = args.find(krpc::kTarget);
             if (target_it != args.end() && target_it->second.isString()) {
                 const std::string& target_str = target_it->second.asString();
@@ -230,8 +230,8 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
         }
         
         // Parse info_hash for get_peers/announce_peer
-        if (msg.query_type_ == DhtQueryType::GET_PEERS || 
-            msg.query_type_ == DhtQueryType::ANNOUNCE_PEER) {
+        if (msg.query_type_ == DhtQueryType::GetPeers || 
+            msg.query_type_ == DhtQueryType::AnnouncePeer) {
             auto hash_it = args.find(krpc::kInfoHash);
             if (hash_it != args.end() && hash_it->second.isString()) {
                 const std::string& hash_str = hash_it->second.asString();
@@ -244,7 +244,7 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
         }
         
         // Parse announce_peer specific fields
-        if (msg.query_type_ == DhtQueryType::ANNOUNCE_PEER) {
+        if (msg.query_type_ == DhtQueryType::AnnouncePeer) {
             auto token_it = args.find(krpc::kToken);
             if (token_it != args.end() && token_it->second.isString()) {
                 msg.token_ = token_it->second.asString();
@@ -263,7 +263,7 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
         
     } else if (y == krpc::kTypeResponse) {
         // Response message
-        msg.type_ = DhtMessageType::RESPONSE;
+        msg.type_ = DhtMessageType::Response;
         
         // Parse response data
         auto r_it = dict.find(krpc::kResponse);
@@ -299,18 +299,30 @@ std::optional<DhtMessage> DhtMessage::parse(const BencodeValue& value) {
         
         // Parse values (peer list)
         auto values_it = resp.find(krpc::kValues);
-        if (values_it != resp.end() && values_it->second.isList()) {
-            const auto& values = values_it->second.asList();
-            for (const auto& v : values) {
-                if (v.isString()) {
-                    msg.peers_data_.push_back(v.asString());
+        if (values_it != resp.end()) {
+            LOG_DEBUG("Found 'values' field in response");
+            if (values_it->second.isList()) {
+                const auto& values = values_it->second.asList();
+                LOG_DEBUG("values is a list with " + std::to_string(values.size()) + " items");
+                for (const auto& v : values) {
+                    if (v.isString()) {
+                        const auto& peer_str = v.asString();
+                        LOG_DEBUG("Peer data size: " + std::to_string(peer_str.size()) + " bytes");
+                        msg.peers_data_.push_back(peer_str);
+                    } else {
+                        LOG_WARN("values item is not a string");
+                    }
                 }
+            } else {
+                LOG_WARN("values field is not a list");
             }
+        } else {
+            LOG_DEBUG("No 'values' field in response (only nodes returned)");
         }
         
     } else if (y == krpc::kTypeError) {
         // Error message
-        msg.type_ = DhtMessageType::DHT_ERROR;
+        msg.type_ = DhtMessageType::Error;
         
         // Parse error
         auto e_it = dict.find(krpc::kError);
@@ -344,16 +356,16 @@ BencodeValue DhtMessage::toBencode() const {
     // Transaction ID
     dict[krpc::kTransactionId] = BencodeValue(transaction_id_);
     
-    if (type_ == DhtMessageType::QUERY) {
+    if (type_ == DhtMessageType::Query) {
         dict[krpc::kMessageType] = BencodeValue(krpc::kTypeQuery);
         
         // Query method
         const char* method = nullptr;
         switch (query_type_) {
-            case DhtQueryType::PING: method = krpc::kMethodPing; break;
-            case DhtQueryType::FIND_NODE: method = krpc::kMethodFindNode; break;
-            case DhtQueryType::GET_PEERS: method = krpc::kMethodGetPeers; break;
-            case DhtQueryType::ANNOUNCE_PEER: method = krpc::kMethodAnnouncePeer; break;
+            case DhtQueryType::Ping: method = krpc::kMethodPing; break;
+            case DhtQueryType::FindNode: method = krpc::kMethodFindNode; break;
+            case DhtQueryType::GetPeers: method = krpc::kMethodGetPeers; break;
+            case DhtQueryType::AnnouncePeer: method = krpc::kMethodAnnouncePeer; break;
         }
         dict[krpc::kQueryMethod] = BencodeValue(method);
         
@@ -361,19 +373,19 @@ BencodeValue DhtMessage::toBencode() const {
         BencodeDict args;
         args[krpc::kNodeId] = BencodeValue(sender_id_.toString());
         
-        if (query_type_ == DhtQueryType::FIND_NODE) {
+        if (query_type_ == DhtQueryType::FindNode) {
             args[krpc::kTarget] = BencodeValue(target_id_.toString());
         }
         
-        if (query_type_ == DhtQueryType::GET_PEERS || 
-            query_type_ == DhtQueryType::ANNOUNCE_PEER) {
+        if (query_type_ == DhtQueryType::GetPeers || 
+            query_type_ == DhtQueryType::AnnouncePeer) {
             // Convert InfoHash bytes to string
             const auto& hash_bytes = info_hash_.bytes();
             std::string hash_str(reinterpret_cast<const char*>(hash_bytes.data()), hash_bytes.size());
             args[krpc::kInfoHash] = BencodeValue(hash_str);
         }
         
-        if (query_type_ == DhtQueryType::ANNOUNCE_PEER) {
+        if (query_type_ == DhtQueryType::AnnouncePeer) {
             args[krpc::kPort] = BencodeValue(static_cast<BencodeInt>(port_));
             args[krpc::kToken] = BencodeValue(token_);
             if (implied_port_) {
@@ -383,7 +395,7 @@ BencodeValue DhtMessage::toBencode() const {
         
         dict[krpc::kArguments] = BencodeValue(args);
         
-    } else if (type_ == DhtMessageType::RESPONSE) {
+    } else if (type_ == DhtMessageType::Response) {
         dict[krpc::kMessageType] = BencodeValue(krpc::kTypeResponse);
         
         BencodeDict resp;
@@ -407,7 +419,7 @@ BencodeValue DhtMessage::toBencode() const {
         
         dict[krpc::kResponse] = BencodeValue(resp);
         
-    } else if (type_ == DhtMessageType::DHT_ERROR) {
+    } else if (type_ == DhtMessageType::Error) {
         dict[krpc::kMessageType] = BencodeValue(krpc::kTypeError);
         
         BencodeList err;

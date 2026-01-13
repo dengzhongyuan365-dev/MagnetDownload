@@ -322,16 +322,16 @@ void DhtClient::handleQuery(const DhtMessage& message, const network::UdpEndpoin
     routing_table_.addNode(sender_node);
     
     switch (message.queryType()) {
-        case DhtQueryType::PING:
+        case DhtQueryType::Ping:
             handlePing(message, sender);
             break;
-        case DhtQueryType::FIND_NODE:
+        case DhtQueryType::FindNode:
             handleFindNode(message, sender);
             break;
-        case DhtQueryType::GET_PEERS:
+        case DhtQueryType::GetPeers:
             handleGetPeers(message, sender);
             break;
-        case DhtQueryType::ANNOUNCE_PEER:
+        case DhtQueryType::AnnouncePeer:
             handleAnnouncePeer(message, sender);
             break;
         default:
@@ -579,15 +579,21 @@ void DhtClient::handleLookupResponse(const std::string& lookup_id,
             LOG_DEBUG("Received token: " + std::to_string(response.token().size()) + " bytes");
         }
         
-        LOG_DEBUG("Response: hasPeers=" + std::string(response.hasPeers() ? "yes" : "no") +
-                  ", hasNodes=" + std::string(response.hasNodes() ? "yes" : "no"));
+        LOG_INFO("Lookup response from " + responder.ip_ + ":" + std::to_string(responder.port_) +
+                 " - hasPeers=" + std::string(response.hasPeers() ? "YES" : "no") +
+                 ", hasNodes=" + std::string(response.hasNodes() ? "yes" : "no") +
+                 ", round=" + std::to_string(state.current_round) + "/" + std::to_string(state.max_rounds) +
+                 ", queried=" + std::to_string(state.queried.size()) +
+                 ", candidates=" + std::to_string(state.candidates.size()));
         
         // 处理 Peers
         if (response.hasPeers()) {
             auto peers = response.getPeers();
-            LOG_INFO("Found " + std::to_string(peers.size()) + " peers from get_peers response");
+            LOG_INFO("*** FOUND " + std::to_string(peers.size()) + " PEERS! ***");
             
             for (const auto& peer : peers) {
+                LOG_INFO("  Peer: " + peer.ip + ":" + std::to_string(peer.port));
+                
                 // 检查是否是新 Peer
                 bool is_new = true;
                 for (const auto& existing : state.found_peers) {
@@ -607,6 +613,7 @@ void DhtClient::handleLookupResponse(const std::string& lookup_id,
         // 处理节点
         if (response.hasNodes()) {
             nodes_to_add = response.getNodes();
+            LOG_DEBUG("Got " + std::to_string(nodes_to_add.size()) + " closer nodes");
             state.addNodes(nodes_to_add);
         }
     }

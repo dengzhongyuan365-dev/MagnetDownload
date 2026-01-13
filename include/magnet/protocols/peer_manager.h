@@ -28,12 +28,12 @@ namespace magnet::protocols {
  */
 struct PeerManagerConfig {
     size_t max_connections{50};         // 最大连接数
-    size_t max_connecting{10};          // 最大同时连接中的数量
+    size_t max_connecting{25};          // 最大同时连接中的数量（增加到25）
     size_t max_pending{200};            // 最大等待连接的 Peer 数
     
     std::chrono::seconds connect_timeout{30};
-    std::chrono::seconds reconnect_delay{60};   // 重连间隔
-    int max_connect_failures{3};                // 最大连接失败次数
+    std::chrono::seconds reconnect_delay{10};   // 重连间隔（减少到10秒）
+    int max_connect_failures{8};                // 最大连接失败次数（增加到8次）
     
     size_t max_requests_per_peer{10};   // 每个 Peer 最大并发请求数
     
