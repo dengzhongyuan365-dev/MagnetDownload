@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
     
     std::string magnet_uri;
     std::string output_path = ".";
-    size_t max_connections = 50;
+    size_t max_connections = 100;
     bool verbose = false;
     
     for (int i = 1; i < argc; ++i) {

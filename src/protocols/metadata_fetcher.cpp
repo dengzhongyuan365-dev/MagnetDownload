@@ -353,9 +353,13 @@ void MetadataFetcher::onPieceReceived(uint32_t piece_index,
     piece_states_[piece_index] = PieceState::Received;
     pieces_received_++;
     
+    // 计算进度（不调用 progress() 以避免重复锁定）
+    float prog = piece_states_.empty() ? 0.0f : 
+        static_cast<float>(pieces_received_) / static_cast<float>(piece_states_.size());
+    
     LOG_INFO("Received piece " + std::to_string(piece_index) + "/" + 
              std::to_string(piece_states_.size()) + 
-             " (" + std::to_string(static_cast<int>(progress() * 100)) + "%)");
+             " (" + std::to_string(static_cast<int>(prog * 100)) + "%)");
     
     // 检查是否完成
     checkCompletion();

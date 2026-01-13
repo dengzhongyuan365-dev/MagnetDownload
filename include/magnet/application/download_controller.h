@@ -61,7 +61,7 @@ struct DownloadConfig {
     std::string magnet_uri;             // 磁力链接
     std::string save_path;              // 保存路径
     
-    size_t max_connections{50};         // 最大连接数
+    size_t max_connections{100};        // 最大连接数（增加以提高速度）
     size_t max_download_speed{0};       // 最大下载速度 (0=无限制)
     size_t max_upload_speed{0};         // 最大上传速度
     
@@ -434,6 +434,11 @@ private:
     void startPeerSearchTimer();
     
     /**
+     * @brief 启动下载停滞检测定时器
+     */
+    void startDownloadStallTimer();
+    
+    /**
      * @brief 计算分片大小
      */
     size_t getPieceSize(uint32_t piece_index) const;
@@ -472,12 +477,15 @@ private:
     DownloadProgress current_progress_;
     std::chrono::steady_clock::time_point start_time_;
     std::chrono::steady_clock::time_point last_progress_update_;
+    std::chrono::steady_clock::time_point last_download_progress_;  // 最后一次有实际下载进度的时间
     size_t last_downloaded_size_{0};
+    size_t stall_check_size_{0};  // 用于检测停滞的下载大小
     
     // 定时器
     asio::steady_timer progress_timer_;
     asio::steady_timer peer_search_timer_;
     asio::steady_timer metadata_timeout_timer_;
+    asio::steady_timer download_stall_timer_;  // 下载停滞检测定时器
     
     // 回调
     DownloadStateCallback state_callback_;

@@ -414,15 +414,16 @@ bool PeerConnection::handleHandshake() {
     
     LOG_INFO("Handshake successful with " + peer_info_.toString());
     
-    // 如果对方支持扩展协议，主动发送扩展握手
-    if (peer_supports_extension) {
-        sendExtensionHandshake();
-    }
-    
-    // 回调通知
+    // 先调用回调通知（让 DownloadController 设置扩展握手和元数据回调）
+    // 这样才能正确处理对方的扩展握手响应
     if (connect_callback_) {
         connect_callback_(true);
         connect_callback_ = nullptr;
+    }
+    
+    // 然后再发送扩展握手（回调已设置，可以处理响应）
+    if (peer_supports_extension) {
+        sendExtensionHandshake();
     }
     
     return true;
