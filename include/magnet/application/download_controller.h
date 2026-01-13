@@ -5,6 +5,7 @@
 #include "../protocols/peer_manager.h"
 #include "../protocols/bt_message.h"
 #include "../protocols/metadata_fetcher.h"
+#include "../storage/file_manager.h"
 
 #include <asio.hpp>
 #include <functional>
@@ -446,6 +447,11 @@ private:
     void startDownloadStallTimer();
     
     /**
+     * @brief 初始化文件存储
+     */
+    void initializeFileStorage();
+    
+    /**
      * @brief 计算分片大小
      */
     size_t getPieceSize(uint32_t piece_index) const;
@@ -477,6 +483,7 @@ private:
     std::shared_ptr<protocols::DhtClient> dht_client_;
     std::shared_ptr<protocols::PeerManager> peer_manager_;
     std::shared_ptr<protocols::MetadataFetcher> metadata_fetcher_;
+    std::unique_ptr<storage::FileManager> file_manager_;
     std::string my_peer_id_;
     
     // 进度

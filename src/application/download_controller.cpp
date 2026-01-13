@@ -1,8 +1,10 @@
 #include "magnet/application/download_controller.h"
 #include "magnet/utils/logger.h"
 #include "magnet/utils/sha1.h"
+#include "magnet/storage/file_manager.h"
 
 #include <random>
+#include <filesystem>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -219,6 +221,9 @@ void DownloadController::setMetadata(const TorrentMetadata& metadata) {
     if (metadata_callback_) {
         metadata_callback_(metadata);
     }
+    
+    // 初始化文件存储
+    initializeFileStorage();
     
     // 初始化分片状态
     initializePieces();
@@ -573,6 +578,58 @@ void DownloadController::onPeerStatusChanged(const network::TcpEndpoint& endpoin
     }
 }
 
+void DownloadController::initializeFileStorage() {
+    TorrentMetadata meta;
+    {
+        std::lock_guard<std::mutex> lock(metadata_mutex_);
+        meta = metadata_;
+    }
+    
+    // 构建存储路径
+    std::string base_path = config_.save_path;
+    if (base_path.empty()) {
+        base_path = ".";
+    }
+    
+    // 创建目录
+    try {
+        std::filesystem::create_directories(base_path);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to create directory: " + std::string(e.what()));
+    }
+    
+    // 配置文件存储
+    storage::StorageConfig storage_config;
+    storage_config.base_path = base_path;
+    storage_config.piece_length = meta.piece_length;
+    storage_config.total_size = meta.total_size;
+    
+    // 添加文件信息
+    for (const auto& file : meta.files) {
+        storage::FileEntry entry;
+        entry.path = file.path;
+        entry.size = file.size;
+        storage_config.files.push_back(entry);
+    }
+    
+    // 如果没有文件列表，使用种子名称
+    if (storage_config.files.empty()) {
+        storage::FileEntry entry;
+        entry.path = meta.name;
+        entry.size = meta.total_size;
+        storage_config.files.push_back(entry);
+    }
+    
+    // 创建并初始化 FileManager
+    file_manager_ = std::make_unique<storage::FileManager>(storage_config);
+    if (!file_manager_->initialize()) {
+        LOG_ERROR("Failed to initialize file storage");
+        file_manager_.reset();
+    } else {
+        LOG_INFO("File storage initialized at: " + base_path);
+    }
+}
+
 void DownloadController::initializePieces() {
     std::lock_guard<std::mutex> lock(pieces_mutex_);
     
@@ -799,6 +856,19 @@ bool DownloadController::verifyPiece(uint32_t piece_index) {
     
     piece.state = PieceState::Verified;
     bitfield_[piece_index] = true;
+    
+    // 写入文件
+    if (file_manager_) {
+        size_t offset = static_cast<size_t>(piece_index) * meta.piece_length;
+        if (!file_manager_->write(offset, piece.data)) {
+            LOG_ERROR("Failed to write piece " + std::to_string(piece_index) + " to disk");
+        } else {
+            LOG_DEBUG("Piece " + std::to_string(piece_index) + " written to disk");
+            // 写入成功后释放内存
+            piece.data.clear();
+            piece.data.shrink_to_fit();
+        }
+    }
     
     // 广播 Have
     if (peer_manager_) {
