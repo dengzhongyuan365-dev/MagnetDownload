@@ -93,29 +93,30 @@ option(BUILD_QT_UI "Build Qt graphical user interface" OFF)
 if(BUILD_TESTS)
     message(STATUS "Looking for Google Test...")
     
-    # 优先使用vcpkg安装的GTest
-    find_package(GTest QUIET)
-    
-    if(GTest_FOUND)
-        message(STATUS "Found GTest via vcpkg (v${GTest_VERSION})")
-        message(STATUS "  Include: ${GTEST_INCLUDE_DIRS}")
-        message(STATUS "  Libraries: ${GTEST_LIBRARIES}")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
+        # 添加GTest子目录
+        set(gtest_force_shared_crt ON)
+        add_subdirectory(3rd/googletest)
+        
+        # 创建统一的接口目标，方便项目使用
+        add_library(GTestAlias INTERFACE)
+        target_link_libraries(GTestAlias INTERFACE 
+            gtest 
+            gtest_main
+        )
+        
+        # 设置包含目录
+        target_include_directories(GTestAlias INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googletest/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googlemock/include
+        )
+        
+        message(STATUS "✓ Google Test configured from local source")
+        
     else()
-        # 备用方案：使用本地源码
-        message(STATUS "GTest not found in vcpkg, checking local source...")
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
-            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-            add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
-            message(STATUS "Using local Google Test from 3rd/googletest")
-        else()
-            message(WARNING 
-                "Google Test not found! Tests will be disabled.\n"
-                "Options:\n"
-                "  1. Ensure vcpkg is installed and GTest is available\n"
-                "  2. Download to 3rd/googletest: git clone https://github.com/google/googletest.git\n"
-            )
-            set(BUILD_TESTS OFF)
-        endif()
+        message(WARNING "Google Test not found at 3rd/googletest/")
+        message(STATUS "Download with: git clone https://github.com/google/googletest.git 3rd/googletest")
+        set(BUILD_TESTS OFF)
     endif()
 endif()
 
