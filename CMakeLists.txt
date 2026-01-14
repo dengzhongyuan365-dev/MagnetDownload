@@ -102,10 +102,17 @@ option(BUILD_TESTS "Build unit tests" ON)
 option(BUILD_MAIN_PROJECT "Build main MagnetDownload project" ON)
 option(BUILD_CONSOLE_UI "Build console user interface" ON)
 option(BUILD_QT_UI "Build Qt graphical user interface" OFF)
+option(BUILD_CEF_UI "Build CEF (Chromium) graphical user interface" ON)
 option(ENABLE_PACKAGING "Enable packaging support" ON)
 
 # 包含版本管理
 include(cmake/version.cmake)
+
+# CEF 自动下载和设置（如果需要 GUI）
+if(BUILD_QT_UI OR BUILD_CEF_UI)
+    include(cmake/DownloadCEF.cmake)
+    setup_cef()  # 一步到位：下载 + 设置路径
+endif()
 
 # 添加生成的头文件目录到包含路径
 include_directories(${CMAKE_BINARY_DIR}/include)

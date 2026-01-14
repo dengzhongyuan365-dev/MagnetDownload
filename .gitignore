@@ -51,6 +51,13 @@ ipch/
 /packages/
 /deps/
 
+# 第三方库二进制文件（过大，不提交到 Git）
+/3rd/cef/win64/
+/3rd/cef/linux64/
+/3rd/cef/macos/
+# 保留 README.md 用于说明版本信息
+!/3rd/cef/README.md
+
 # IDE/编辑器文件
 .vs/
 .vscode/
