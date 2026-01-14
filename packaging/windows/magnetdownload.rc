@@ -45,5 +45,4 @@ BEGIN
     END
 END
 
-// Application icon (if you have one)
-// IDI_ICON1 ICON "magnetdownload.ico"
+1 ICON "magnetdownload.ico"

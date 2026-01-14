@@ -20,8 +20,19 @@ set(CEF_COMMON_SOURCES
 
 # 平台特定源文件
 if(WIN32)
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/packaging/windows/magnetdownload.ico
+        ${CMAKE_CURRENT_BINARY_DIR}/magnetdownload.ico
+        COPYONLY
+    )
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/packaging/windows/magnetdownload.rc
+        ${CMAKE_CURRENT_BINARY_DIR}/magnetdownload.rc
+        COPYONLY
+    )
     set(CEF_PLATFORM_SOURCES
         win/main_win.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/magnetdownload.rc
     )
 elseif(UNIX AND NOT APPLE)
     set(CEF_PLATFORM_SOURCES

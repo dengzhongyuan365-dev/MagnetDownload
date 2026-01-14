@@ -8,6 +8,10 @@
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_helpers.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "cef_client.h"
 
 namespace magnet {
@@ -24,6 +28,17 @@ class MagnetWindowDelegate : public CefWindowDelegate {
     window->AddChildView(browser_view_);
     window->Show();
     browser_view_->RequestFocus();
+
+#ifdef _WIN32
+    HWND hwnd = window->GetWindowHandle();
+    if (hwnd) {
+      HICON hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(1));
+      if (hIcon) {
+        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+      }
+    }
+#endif
   }
 
   void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
