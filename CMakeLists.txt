@@ -110,33 +110,41 @@ include(cmake/version.cmake)
 # 添加生成的头文件目录到包含路径
 include_directories(${CMAKE_BINARY_DIR}/include)
 
-# Google Test 配置
+# Google Test 配置（源码集成，类似Asio但需要编译）
 if(BUILD_TESTS)
     message(STATUS "Looking for Google Test...")
     
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
-        # 添加GTest子目录
-        set(gtest_force_shared_crt ON)
+        # 创建GTest库目标（需要编译，不是INTERFACE）
+        set(gtest_force_shared_crt ON CACHE BOOL "Use shared CRT for GTest" FORCE)
+        set(gtest_disable_pthreads OFF CACHE BOOL "Disable pthreads" FORCE)
+        
+        # 添加子目录，会编译gtest和gtest_main
         add_subdirectory(3rd/googletest)
         
-        # 创建统一的接口目标，方便项目使用
-        add_library(GTestAlias INTERFACE)
-        target_link_libraries(GTestAlias INTERFACE 
-            gtest 
-            gtest_main
-        )
+        # 创建统一的GTest导入目标（类似Asio的做法）
+        # 这样其他模块可以统一使用 GTest::GTest
+        if(NOT TARGET GTest::GTest)
+            add_library(GTest::GTest INTERFACE IMPORTED)
+            target_link_libraries(GTest::GTest INTERFACE gtest gtest_main)
+            target_include_directories(GTest::GTest INTERFACE
+                ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googletest/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googlemock/include
+            )
+        endif()
         
-        # 设置包含目录
-        target_include_directories(GTestAlias INTERFACE
-            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googletest/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googlemock/include
-        )
+        # 设置编译定义（可选）
+        target_compile_definitions(gtest PRIVATE GTEST_HAS_PTHREAD=1)
+        target_compile_definitions(gtest_main PRIVATE GTEST_HAS_PTHREAD=1)
         
         message(STATUS "✓ Google Test configured from local source")
+        message(STATUS "  Include: ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googletest/include")
         
     else()
         message(WARNING "Google Test not found at 3rd/googletest/")
-        message(STATUS "Download with: git clone https://github.com/google/googletest.git 3rd/googletest")
+        message(STATUS "Please ensure googletest source code is in 3rd/googletest/")
+        message(STATUS "You can download it with:")
+        message(STATUS "  git clone https://github.com/google/googletest.git 3rd/googletest")
         set(BUILD_TESTS OFF)
     endif()
 endif()
