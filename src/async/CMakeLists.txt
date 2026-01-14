@@ -5,7 +5,7 @@ message(STATUS "Configuring Async Library...")
 
 add_library(magnet_async STATIC
     event_loop_manager.cpp          # 事件循环管理器
-    task_scheduler.cpp              # 任务调度器
+    task_scheduler.cpp              # 增强型任务调度器
     # timer.cpp                     # 你将要实现的
 )
 
