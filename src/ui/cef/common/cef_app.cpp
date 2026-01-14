@@ -13,34 +13,79 @@
 namespace magnet {
 namespace ui {
 
+namespace {
+
+class MagnetWindowDelegate : public CefWindowDelegate {
+ public:
+  explicit MagnetWindowDelegate(CefRefPtr<CefBrowserView> browser_view)
+      : browser_view_(browser_view) {}
+
+  void OnWindowCreated(CefRefPtr<CefWindow> window) override {
+    window->AddChildView(browser_view_);
+    window->Show();
+    browser_view_->RequestFocus();
+  }
+
+  void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
+    browser_view_ = nullptr;
+  }
+
+  bool CanClose(CefRefPtr<CefWindow> window) override {
+    CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
+    if (browser)
+      return browser->GetHost()->TryCloseBrowser();
+    return true;
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    return CefSize(1280, 800);
+  }
+
+ private:
+  CefRefPtr<CefBrowserView> browser_view_;
+
+  IMPLEMENT_REFCOUNTING(MagnetWindowDelegate);
+  DISALLOW_COPY_AND_ASSIGN(MagnetWindowDelegate);
+};
+
+class MagnetBrowserViewDelegate : public CefBrowserViewDelegate {
+ public:
+  MagnetBrowserViewDelegate() {}
+
+  bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view,
+                                  CefRefPtr<CefBrowserView> popup_browser_view,
+                                  bool is_devtools) override {
+    CefWindow::CreateTopLevelWindow(
+        new MagnetWindowDelegate(popup_browser_view));
+    return true;
+  }
+
+ private:
+  IMPLEMENT_REFCOUNTING(MagnetBrowserViewDelegate);
+  DISALLOW_COPY_AND_ASSIGN(MagnetBrowserViewDelegate);
+};
+
+}  // namespace
+
 MagnetCefApp::MagnetCefApp() {}
 
 void MagnetCefApp::OnContextInitialized() {
   CEF_REQUIRE_UI_THREAD();
 
-  CefRefPtr<CefCommandLine> command_line =
-      CefCommandLine::GetGlobalCommandLine();
-
-  // 创建浏览器窗口
   CefRefPtr<MagnetCefClient> client(new MagnetCefClient());
 
-  // 窗口信息
-  CefWindowInfo window_info;
+  std::string url = "data:text/html,<html><body style='font-family:sans-serif;padding:20px;'>"
+                    "<h1>MagnetDownload</h1>"
+                    "<p>CEF Integration Successful!</p>"
+                    "</body></html>";
 
-#if defined(OS_WIN)
-  // Windows: 创建一个弹出窗口
-  window_info.SetAsPopup(nullptr, "MagnetDownload");
-#endif
-
-  // 浏览器设置
   CefBrowserSettings browser_settings;
 
-  // 初始 URL（这里先加载一个占位页面，稍后可以改为加载本地前端文件）
-  std::string url = "data:text/html,<html><body><h1>MagnetDownload</h1><p>CEF Integration Successful!</p></body></html>";
+  CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
+      client, url, browser_settings, nullptr, nullptr,
+      new MagnetBrowserViewDelegate());
 
-  // 创建浏览器
-  CefBrowserHost::CreateBrowser(window_info, client, url, browser_settings,
-                                 nullptr, nullptr);
+  CefWindow::CreateTopLevelWindow(new MagnetWindowDelegate(browser_view));
 }
 
 }  // namespace ui

@@ -7,7 +7,6 @@
 
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
-#include "include/cef_parser.h"
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_closure_task.h"
@@ -102,7 +101,8 @@ void MagnetCefClient::OnLoadError(CefRefPtr<CefBrowser> browser,
      << std::string(failedUrl) << " with error " << std::string(errorText)
      << " (" << errorCode << ").</h2></body></html>";
 
-  frame->LoadURL(CefDataUri::Create(ss.str(), "text/html"));
+  std::string data_uri = "data:text/html," + ss.str();
+  frame->LoadURL(data_uri);
 }
 
 void MagnetCefClient::CloseAllBrowsers(bool force_close) {

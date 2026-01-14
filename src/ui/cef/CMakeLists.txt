@@ -3,7 +3,8 @@
 find_package(CEF REQUIRED)
 
 ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
-SET_CEF_TARGET_OUT_DIR()
+
+set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIGURATION>")
 
 add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
 
@@ -39,6 +40,10 @@ add_executable(magnetdownload_gui WIN32
 
 SET_EXECUTABLE_TARGET_PROPERTIES(magnetdownload_gui)
 add_dependencies(magnetdownload_gui libcef_dll_wrapper)
+
+set_target_properties(magnetdownload_gui PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
 
 target_include_directories(magnetdownload_gui PRIVATE
     ${CMAKE_SOURCE_DIR}/include

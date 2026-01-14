@@ -15,9 +15,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   UNREFERENCED_PARAMETER(hPrevInstance);
   UNREFERENCED_PARAMETER(lpCmdLine);
 
-  // 启用高 DPI 支持
-  CefEnableHighDPISupport();
-
   // CEF 初始化配置
   CefMainArgs main_args(hInstance);
 

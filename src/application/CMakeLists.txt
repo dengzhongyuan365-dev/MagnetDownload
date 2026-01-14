@@ -1,28 +1,37 @@
-# MagnetDownload 主应用程序
-# 集成所有模块，提供完整的下载器功能
+# MagnetDownload 应用层
+# 提供下载控制器等业务逻辑
 
 message(STATUS "Configuring Main Application...")
 
-add_executable(magnetdownload
-    main.cpp                        # 主程序入口
-    download_controller.cpp         # 下载控制器
+# 1. 创建应用层静态库（供 GUI 使用）
+add_library(magnet_application STATIC
+    download_controller.cpp
 )
 
-target_include_directories(magnetdownload
-    PRIVATE
+target_include_directories(magnet_application
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
-        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# 链接所有静态库（业务核心）
+target_link_libraries(magnet_application
+    PUBLIC
+        magnet_utils
+        magnet_async
+        magnet_network
+        magnet_protocols
+        magnet_storage
+)
+
+target_compile_features(magnet_application PUBLIC cxx_std_17)
+
+# 2. 创建命令行可执行文件
+add_executable(magnetdownload
+    main.cpp
+)
+
 target_link_libraries(magnetdownload
     PRIVATE
-        magnet_utils        # 基础工具
-        magnet_async        # 异步基础设施
-        magnet_network      # 网络功能
-        magnet_protocols    # 协议处理
-        magnet_storage      # 存储管理
-        # UI模块通过动态加载，不在这里静态链接
+        magnet_application
 )
 
 # 设置编译特性
