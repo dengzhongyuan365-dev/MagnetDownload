@@ -407,14 +407,14 @@ void TcpClient::configureSocket() {
         LOG_WARNING("Failed to set SO_KEEPALIVE: " + ec.message());
     }
     
-    // 设置接收缓冲区大小
-    socket_.set_option(asio::socket_base::receive_buffer_size(65536), ec);
+    // 设置接收缓冲区大小（256KB 提高吞吐量）
+    socket_.set_option(asio::socket_base::receive_buffer_size(262144), ec);
     if (ec) {
         LOG_WARNING("Failed to set receive buffer size: " + ec.message());
     }
     
-    // 设置发送缓冲区大小
-    socket_.set_option(asio::socket_base::send_buffer_size(65536), ec);
+    // 设置发送缓冲区大小（256KB）
+    socket_.set_option(asio::socket_base::send_buffer_size(262144), ec);
     if (ec) {
         LOG_WARNING("Failed to set send buffer size: " + ec.message());
     }

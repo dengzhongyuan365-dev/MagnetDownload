@@ -347,7 +347,7 @@ private:
     TcpEndpoint remote_endpoint_;
     
     // 接收缓冲区
-    static constexpr size_t kReceiveBufferSize = 65536;  // 64KB
+    static constexpr size_t kReceiveBufferSize = 262144;  // 256KB - 增大以提高吞吐量
     std::vector<uint8_t> receive_buffer_;
     
     // 回调

@@ -57,7 +57,7 @@ void printHelp(const char* program) {
 |                                                              |
 |  Options:                                                    |
 |    -o, --output <path>    Save path (default: current dir)   |
-|    -c, --connections <n>  Max connections (default: 50)      |
+|    -c, --connections <n>  Max connections (default: 200)     |
 |    -v, --verbose          Verbose output                     |
 |    -h, --help             Show help                          |
 |                                                              |

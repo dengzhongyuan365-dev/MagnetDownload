@@ -5,6 +5,7 @@
 #include "../protocols/peer_manager.h"
 #include "../protocols/bt_message.h"
 #include "../protocols/metadata_fetcher.h"
+#include "../protocols/tracker_client.h"
 #include "../storage/file_manager.h"
 
 #include <asio.hpp>
@@ -62,7 +63,7 @@ struct DownloadConfig {
     std::string magnet_uri;             // 磁力链接
     std::string save_path;              // 保存路径
     
-    size_t max_connections{100};        // 最大连接数（增加以提高速度）
+    size_t max_connections{200};        // 最大连接数（大幅增加以提高速度）
     size_t max_download_speed{0};       // 最大下载速度 (0=无限制)
     size_t max_upload_speed{0};         // 最大上传速度
     
@@ -70,7 +71,7 @@ struct DownloadConfig {
     bool auto_start{true};              // 自动开始
     
     std::chrono::seconds metadata_timeout{300}; // 元数据获取超时 (5分钟)
-    std::chrono::seconds peer_search_interval{30}; // Peer 搜索间隔
+    std::chrono::seconds peer_search_interval{15}; // Peer 搜索间隔（缩短以更快发现新 peers）
 };
 
 // ============================================================================
@@ -483,8 +484,12 @@ private:
     std::shared_ptr<protocols::DhtClient> dht_client_;
     std::shared_ptr<protocols::PeerManager> peer_manager_;
     std::shared_ptr<protocols::MetadataFetcher> metadata_fetcher_;
+    std::shared_ptr<protocols::TrackerClient> tracker_client_;
     std::unique_ptr<storage::FileManager> file_manager_;
     std::string my_peer_id_;
+    
+    // Tracker URLs
+    std::vector<std::string> tracker_urls_;
     
     // 进度
     mutable std::mutex progress_mutex_;
