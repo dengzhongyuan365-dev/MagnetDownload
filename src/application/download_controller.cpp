@@ -1,8 +1,10 @@
 #include "magnet/application/download_controller.h"
 #include "magnet/utils/logger.h"
 #include "magnet/utils/sha1.h"
+#include "magnet/storage/file_manager.h"
 
 #include <random>
+#include <filesystem>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -25,6 +27,7 @@ DownloadController::DownloadController(asio::io_context& io_context)
     , progress_timer_(io_context)
     , peer_search_timer_(io_context)
     , metadata_timeout_timer_(io_context)
+    , download_stall_timer_(io_context)
 {
     my_peer_id_ = generatePeerId();
     LOG_DEBUG("DownloadController created, peer_id=" + my_peer_id_);
@@ -58,11 +61,14 @@ bool DownloadController::start(const DownloadConfig& config) {
     LOG_INFO("Starting download: " + config.magnet_uri);
     
     // 解析 Magnet URI
+    LOG_INFO("Parsing magnet URI: " + config.magnet_uri);
     auto parse_result = protocols::parseMagnetUri(config.magnet_uri);
     if (!parse_result.is_ok()) {
+        LOG_ERROR("Parse error code: " + std::to_string(static_cast<int>(parse_result.error())));
         fail("Failed to parse magnet URI");
         return false;
     }
+    LOG_INFO("Magnet URI parsed successfully");
     
     auto& magnet_info = parse_result.value();
     
@@ -79,12 +85,42 @@ bool DownloadController::start(const DownloadConfig& config) {
         metadata_.name = magnet_info.display_name.empty() ? "unknown" : magnet_info.display_name;
     }
     
+    // 保存 Tracker URLs
+    tracker_urls_ = magnet_info.trackers;
     LOG_INFO("info_hash: " + magnet_info.info_hash->toHex());
+    LOG_INFO("Found " + std::to_string(tracker_urls_.size()) + " trackers in magnet link");
     
     // 通知状态变化
     setState(DownloadState::ResolvingMetadata);
     
-    // 初始化 DHT（会自动 bootstrap 并查找 Peer）
+    // 初始化 TrackerClient（优先使用 Tracker）
+    if (!tracker_urls_.empty()) {
+        tracker_client_ = std::make_shared<protocols::TrackerClient>(
+            io_context_, magnet_info.info_hash.value(), my_peer_id_, 6881);
+        
+        // 立即向所有 Tracker 发送请求
+        auto self = shared_from_this();
+        tracker_client_->announceAll(tracker_urls_, 0, 0, 0,
+            [self](const protocols::TrackerResponse& response) {
+                if (response.success && !response.peers.empty()) {
+                    LOG_INFO("Got " + std::to_string(response.peers.size()) + " peers from tracker");
+                    
+                    // 转换为 PeerInfo
+                    std::vector<protocols::PeerInfo> peers;
+                    for (const auto& ep : response.peers) {
+                        protocols::PeerInfo peer;
+                        peer.ip = ep.ip;
+                        peer.port = ep.port;
+                        peers.push_back(peer);
+                    }
+                    self->onPeersFound(peers);
+                } else if (!response.failure_reason.empty()) {
+                    LOG_WARNING("Tracker failed: " + response.failure_reason);
+                }
+            });
+    }
+    
+    // 初始化 DHT（作为备用）
     initializeDht();
     
     // 启动元数据超时定时器
@@ -146,6 +182,7 @@ void DownloadController::stop() {
     progress_timer_.cancel();
     peer_search_timer_.cancel();
     metadata_timeout_timer_.cancel();
+    download_stall_timer_.cancel();
     
     // 停止组件
     if (peer_manager_) {
@@ -153,6 +190,9 @@ void DownloadController::stop() {
     }
     if (dht_client_) {
         dht_client_->stop();
+    }
+    if (tracker_client_) {
+        tracker_client_->cancel();
     }
     
     setState(DownloadState::Stopped);
@@ -215,6 +255,9 @@ void DownloadController::setMetadata(const TorrentMetadata& metadata) {
         metadata_callback_(metadata);
     }
     
+    // 初始化文件存储
+    initializeFileStorage();
+    
     // 初始化分片状态
     initializePieces();
     
@@ -224,7 +267,11 @@ void DownloadController::setMetadata(const TorrentMetadata& metadata) {
     // 启动进度更新定时器
     startProgressTimer();
     
+    // 启动下载停滞检测定时器
+    startDownloadStallTimer();
+    
     // 开始请求数据
+    LOG_INFO("Starting to request blocks after metadata set");
     requestMoreBlocks();
 }
 
@@ -349,23 +396,22 @@ void DownloadController::onMetadataFetched(const protocols::TorrentMetadata* met
 
 void DownloadController::initializeDht() {
     protocols::DhtClientConfig dht_config;
-    dht_config.listen_port = 0;  // 随机端口
+    dht_config.listen_port = 6881;  // 固定端口，方便防火墙配置
     
-    // 添加引导节点 - 包含多个备用节点以提高可用性
+    // 添加引导节点 - 使用多个公共 DHT 节点增加成功率
     dht_config.bootstrap_nodes = {
         {"router.bittorrent.com", 6881},
         {"router.utorrent.com", 6881},
         {"dht.transmissionbt.com", 6881},
         {"dht.libtorrent.org", 25401},
-        // 备用节点
         {"dht.aelitis.com", 6881},
-        {"87.98.162.88", 6881},      // 欧洲节点 IP
-        {"82.221.103.244", 6881}     // 备用节点 IP
+        {"router.bitcomet.com", 6881},
+        {"dht.vuze.com", 6881}
     };
     
-    // 增加超时时间（网络不稳定时更有可能成功）
-    dht_config.query_config.default_timeout = std::chrono::milliseconds(5000);
-    dht_config.query_config.default_max_retries = 4;
+    // 大幅增加超时时间（国内网络环境需要更长时间）
+    dht_config.query_config.default_timeout = std::chrono::milliseconds(10000);
+    dht_config.query_config.default_max_retries = 6;
     
     dht_client_ = std::make_shared<protocols::DhtClient>(io_context_, dht_config);
     dht_client_->start();
@@ -398,10 +444,6 @@ void DownloadController::initializeDht() {
 }
 
 void DownloadController::findPeers() {
-    if (!dht_client_) {
-        return;
-    }
-    
     protocols::InfoHash info_hash;
     {
         std::lock_guard<std::mutex> lock(metadata_mutex_);
@@ -412,19 +454,46 @@ void DownloadController::findPeers() {
     
     auto self = shared_from_this();
     
-    // 每找到一个 Peer 调用一次
-    dht_client_->findPeers(info_hash, 
-        [self](const protocols::PeerInfo& peer) {
-            // 单个 Peer 回调
-            std::vector<protocols::PeerInfo> peers = {peer};
-            self->onPeersFound(peers);
-        },
-        [self](bool success, const std::vector<protocols::PeerInfo>& all_peers) {
-            // 查找完成回调
-            if (success && !all_peers.empty()) {
-                LOG_INFO("Peer lookup complete, found " + std::to_string(all_peers.size()) + " peers");
-            }
-        });
+    // 1. 使用 Tracker 获取 peers（优先）
+    if (tracker_client_ && !tracker_urls_.empty()) {
+        uint64_t downloaded = 0, left = 0;
+        {
+            std::lock_guard<std::mutex> lock(progress_mutex_);
+            downloaded = current_progress_.downloaded_size;
+            left = current_progress_.total_size > downloaded ? 
+                   current_progress_.total_size - downloaded : 0;
+        }
+        
+        tracker_client_->announceAll(tracker_urls_, downloaded, 0, left,
+            [self](const protocols::TrackerResponse& response) {
+                if (response.success && !response.peers.empty()) {
+                    LOG_INFO("Tracker returned " + std::to_string(response.peers.size()) + " peers");
+                    
+                    std::vector<protocols::PeerInfo> peers;
+                    for (const auto& ep : response.peers) {
+                        protocols::PeerInfo peer;
+                        peer.ip = ep.ip;
+                        peer.port = ep.port;
+                        peers.push_back(peer);
+                    }
+                    self->onPeersFound(peers);
+                }
+            });
+    }
+    
+    // 2. 同时使用 DHT 获取 peers（备用）
+    if (dht_client_) {
+        dht_client_->findPeers(info_hash, 
+            [self](const protocols::PeerInfo& peer) {
+                std::vector<protocols::PeerInfo> peers = {peer};
+                self->onPeersFound(peers);
+            },
+            [self](bool success, const std::vector<protocols::PeerInfo>& all_peers) {
+                if (success && !all_peers.empty()) {
+                    LOG_INFO("DHT lookup complete, found " + std::to_string(all_peers.size()) + " peers");
+                }
+            });
+    }
 }
 
 void DownloadController::onPeersFound(const std::vector<protocols::PeerInfo>& peers) {
@@ -544,6 +613,12 @@ void DownloadController::onPieceReceived(uint32_t piece_index, uint32_t begin,
             }
             self->requestMoreBlocks();
         });
+    } else {
+        // 每收到一个 block 就尝试请求更多，保持管道满载
+        auto self = shared_from_this();
+        asio::post(io_context_, [self]() {
+            self->requestMoreBlocks();
+        });
     }
     
     // 更新进度
@@ -565,6 +640,62 @@ void DownloadController::onPeerStatusChanged(const network::TcpEndpoint& endpoin
             current_progress_.connected_peers--;
         }
         LOG_DEBUG("Peer disconnected: " + endpoint.toString());
+    }
+}
+
+void DownloadController::initializeFileStorage() {
+    TorrentMetadata meta;
+    {
+        std::lock_guard<std::mutex> lock(metadata_mutex_);
+        meta = metadata_;
+    }
+    
+    // 构建存储路径
+    std::string base_path = config_.save_path;
+    if (base_path.empty()) {
+        base_path = ".";
+    }
+    
+    // 创建目录
+    try {
+        std::filesystem::create_directories(base_path);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to create directory: " + std::string(e.what()));
+    }
+    
+    // 配置文件存储
+    storage::StorageConfig storage_config;
+    storage_config.base_path = base_path;
+    storage_config.piece_length = meta.piece_length;
+    storage_config.total_size = meta.total_size;
+    
+    // 添加文件信息
+    size_t current_offset = 0;
+    for (const auto& file : meta.files) {
+        storage::FileEntry entry;
+        entry.path = file.path;
+        entry.size = file.size;
+        entry.offset = current_offset;
+        storage_config.files.push_back(entry);
+        current_offset += file.size;
+    }
+    
+    // 如果没有文件列表，使用种子名称
+    if (storage_config.files.empty()) {
+        storage::FileEntry entry;
+        entry.path = meta.name;
+        entry.size = meta.total_size;
+        entry.offset = 0;  // 单文件偏移为 0
+        storage_config.files.push_back(entry);
+    }
+    
+    // 创建并初始化 FileManager
+    file_manager_ = std::make_unique<storage::FileManager>(storage_config);
+    if (!file_manager_->initialize()) {
+        LOG_ERROR("Failed to initialize file storage");
+        file_manager_.reset();
+    } else {
+        LOG_INFO("File storage initialized at: " + base_path);
     }
 }
 
@@ -617,8 +748,11 @@ int32_t DownloadController::selectNextPiece() {
     }
     
     if (missing_pieces.empty()) {
+        LOG_DEBUG("selectNextPiece: no missing pieces");
         return -1;
     }
+    
+    LOG_DEBUG("selectNextPiece: " + std::to_string(missing_pieces.size()) + " missing pieces");
     
     // 稀有优先算法：计算每个分片的稀有度
     // 稀有度 = 拥有该分片的 Peer 数量（越少越稀有）
@@ -626,25 +760,37 @@ int32_t DownloadController::selectNextPiece() {
     if (peer_manager_) {
         int32_t best_piece = -1;
         size_t min_availability = SIZE_MAX;
+        size_t pieces_with_peers = 0;
         
         for (uint32_t piece_idx : missing_pieces) {
             auto peers = peer_manager_->getPeersWithPiece(piece_idx);
             size_t availability = peers.size();
             
-            // 至少有一个 Peer 拥有这个分片
-            if (availability > 0 && availability < min_availability) {
-                min_availability = availability;
-                best_piece = static_cast<int32_t>(piece_idx);
+            if (availability > 0) {
+                pieces_with_peers++;
+                if (availability < min_availability) {
+                    min_availability = availability;
+                    best_piece = static_cast<int32_t>(piece_idx);
+                }
             }
         }
         
+        LOG_DEBUG("selectNextPiece: " + std::to_string(pieces_with_peers) + 
+                  " pieces have peers available");
+        
         if (best_piece >= 0) {
+            LOG_DEBUG("selectNextPiece: selected piece " + std::to_string(best_piece) + 
+                      " with availability " + std::to_string(min_availability));
             return best_piece;
         }
+        
+        LOG_DEBUG("selectNextPiece: no peers have any of the missing pieces");
+    } else {
+        LOG_DEBUG("selectNextPiece: peer_manager is null");
     }
     
-    // 如果没有找到有 Peer 的分片，返回第一个 Missing 的
-    return static_cast<int32_t>(missing_pieces[0]);
+    // 如果没有 peer 有这些分片，返回 -1（不要盲目请求）
+    return -1;
 }
 
 void DownloadController::requestPiece(uint32_t piece_index) {
@@ -659,7 +805,8 @@ void DownloadController::requestPiece(uint32_t piece_index) {
         return;
     }
     
-    piece.state = PieceState::Pending;
+    // 统计成功发送的请求数
+    size_t requests_sent = 0;
     
     // 生成块请求
     for (size_t i = 0; i < piece.blocks.size(); ++i) {
@@ -673,40 +820,66 @@ void DownloadController::requestPiece(uint32_t piece_index) {
         
         protocols::BlockInfo block{piece_index, begin, length};
         
-        if (peer_manager_) {
-            peer_manager_->requestBlock(block);
+        if (peer_manager_ && peer_manager_->requestBlock(block)) {
+            requests_sent++;
         }
     }
     
-    LOG_DEBUG("Requested piece " + std::to_string(piece_index));
+    // 只有当成功发送了请求时，才将 piece 标记为 Pending
+    if (requests_sent > 0) {
+        piece.state = PieceState::Pending;
+        piece.request_time = std::chrono::steady_clock::now();  // 记录请求时间
+        LOG_DEBUG("Requested piece " + std::to_string(piece_index) + 
+                  " with " + std::to_string(requests_sent) + " blocks");
+    } else {
+        LOG_DEBUG("No peer available for piece " + std::to_string(piece_index));
+    }
 }
 
 void DownloadController::requestMoreBlocks() {
     if (state_.load() != DownloadState::Downloading) {
+        LOG_DEBUG("requestMoreBlocks: not in Downloading state");
         return;
     }
     
     std::lock_guard<std::mutex> lock(pieces_mutex_);
     
-    // 统计正在下载的分片数
+    // 统计正在下载的分片数和各状态数量
     size_t pending_count = 0;
+    size_t missing_count = 0;
+    size_t verified_count = 0;
     for (const auto& piece : pieces_) {
         if (piece.state == PieceState::Pending) {
             pending_count++;
+        } else if (piece.state == PieceState::Missing) {
+            missing_count++;
+        } else if (piece.state == PieceState::Verified) {
+            verified_count++;
         }
     }
     
-    // 限制并发下载的分片数
-    const size_t max_pending = 10;
+    LOG_DEBUG("requestMoreBlocks: pieces=" + std::to_string(pieces_.size()) +
+              ", pending=" + std::to_string(pending_count) +
+              ", missing=" + std::to_string(missing_count) +
+              ", verified=" + std::to_string(verified_count));
+    
+    // 限制并发下载的分片数（增加到 100 以提高下载速度）
+    const size_t max_pending = 100;
+    size_t requested = 0;
     while (pending_count < max_pending) {
         int32_t next_piece = selectNextPiece();
         if (next_piece < 0) {
+            LOG_DEBUG("requestMoreBlocks: no more pieces to request (selectNextPiece returned -1)");
             break;
         }
         
+        LOG_DEBUG("requestMoreBlocks: requesting piece " + std::to_string(next_piece));
         requestPiece(static_cast<uint32_t>(next_piece));
         pending_count++;
+        requested++;
     }
+    
+    LOG_DEBUG("requestMoreBlocks: requested " + std::to_string(requested) + " pieces");
     
     // 更新进度
     {
@@ -752,6 +925,19 @@ bool DownloadController::verifyPiece(uint32_t piece_index) {
     
     piece.state = PieceState::Verified;
     bitfield_[piece_index] = true;
+    
+    // 写入文件
+    if (file_manager_) {
+        size_t offset = static_cast<size_t>(piece_index) * meta.piece_length;
+        if (!file_manager_->write(offset, piece.data)) {
+            LOG_ERROR("Failed to write piece " + std::to_string(piece_index) + " to disk");
+        } else {
+            LOG_DEBUG("Piece " + std::to_string(piece_index) + " written to disk");
+            // 写入成功后释放内存
+            piece.data.clear();
+            piece.data.shrink_to_fit();
+        }
+    }
     
     // 广播 Have
     if (peer_manager_) {
@@ -895,6 +1081,97 @@ void DownloadController::startPeerSearchTimer() {
             }
         }
     });
+}
+
+void DownloadController::startDownloadStallTimer() {
+    auto self = shared_from_this();
+    
+    // 初始化停滞检测的起始值
+    {
+        std::lock_guard<std::mutex> lock(progress_mutex_);
+        last_download_progress_ = std::chrono::steady_clock::now();
+        stall_check_size_ = current_progress_.downloaded_size;
+    }
+    
+    // 每30秒检查一次下载进度
+    download_stall_timer_.expires_after(std::chrono::seconds(30));
+    download_stall_timer_.async_wait([self](const asio::error_code& ec) {
+        if (ec) {
+            return;  // 定时器被取消
+        }
+        
+        if (self->state_.load() != DownloadState::Downloading) {
+            return;
+        }
+        
+        size_t current_size;
+        size_t check_size;
+        std::chrono::steady_clock::time_point last_progress;
+        
+        {
+            std::lock_guard<std::mutex> lock(self->progress_mutex_);
+            current_size = self->current_progress_.downloaded_size;
+            check_size = self->stall_check_size_;
+            last_progress = self->last_download_progress_;
+        }
+        
+        // 检查是否有新的下载
+        if (current_size > check_size) {
+            // 有进度，更新检查点
+            std::lock_guard<std::mutex> lock(self->progress_mutex_);
+            self->stall_check_size_ = current_size;
+            self->last_download_progress_ = std::chrono::steady_clock::now();
+            LOG_DEBUG("Download progress detected: " + std::to_string(current_size) + " bytes");
+        } else {
+            // 没有进度，检查是否超时（60秒无进度）
+            auto now = std::chrono::steady_clock::now();
+            auto stall_duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_progress);
+            
+            if (stall_duration.count() >= 60) {
+                LOG_ERROR("Download stalled for " + std::to_string(stall_duration.count()) + 
+                          " seconds, stopping download");
+                self->fail("Download stalled: no progress for 60 seconds");
+                return;
+            } else {
+                LOG_WARNING("No download progress for " + std::to_string(stall_duration.count()) + 
+                            " seconds, will retry...");
+                // 重置超时的 pending pieces
+                self->resetTimedOutPieces();
+                // 尝试请求更多数据
+                self->requestMoreBlocks();
+            }
+        }
+        
+        // 继续检测
+        self->startDownloadStallTimer();
+    });
+}
+
+void DownloadController::resetTimedOutPieces() {
+    std::lock_guard<std::mutex> lock(pieces_mutex_);
+    
+    auto now = std::chrono::steady_clock::now();
+    const auto timeout = std::chrono::seconds(15);  // 15秒超时（缩短以更快重试）
+    size_t reset_count = 0;
+    
+    for (auto& piece : pieces_) {
+        if (piece.state == PieceState::Pending) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                now - piece.request_time);
+            
+            if (elapsed >= timeout) {
+                // 重置为 Missing 状态，允许重新请求
+                piece.state = PieceState::Missing;
+                reset_count++;
+                LOG_DEBUG("Reset timed out piece " + std::to_string(piece.index) + 
+                          " after " + std::to_string(elapsed.count()) + " seconds");
+            }
+        }
+    }
+    
+    if (reset_count > 0) {
+        LOG_INFO("Reset " + std::to_string(reset_count) + " timed out pieces");
+    }
 }
 
 size_t DownloadController::getPieceSize(uint32_t piece_index) const {

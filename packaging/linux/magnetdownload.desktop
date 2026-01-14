@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MagnetDownload
+GenericName=Magnet Link Downloader
+Comment=High-performance magnet link downloader with DHT support
+Exec=magnetdownload %U
+Icon=magnetdownload
+Terminal=false
+Categories=Network;FileTransfer;P2P;
+MimeType=application/x-bittorrent;x-scheme-handler/magnet;
+Keywords=torrent;magnet;download;p2p;bittorrent;
+StartupNotify=true

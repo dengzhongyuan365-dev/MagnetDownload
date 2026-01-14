@@ -248,9 +248,9 @@ public:
     // 类型检查
     // ========================================================================
     
-    bool isQuery() const { return type_ == DhtMessageType::QUERY; }
-    bool isResponse() const { return type_ == DhtMessageType::RESPONSE; }
-    bool isError() const { return type_ == DhtMessageType::DHT_ERROR; }
+    bool isQuery() const { return type_ == DhtMessageType::Query; }
+    bool isResponse() const { return type_ == DhtMessageType::Response; }
+    bool isError() const { return type_ == DhtMessageType::Error; }
     
     DhtMessageType type() const { return type_; }
     DhtQueryType queryType() const { return query_type_; }
@@ -326,8 +326,8 @@ public:
 
 private:
     // 消息类型
-    DhtMessageType type_ = DhtMessageType::QUERY;
-    DhtQueryType query_type_ = DhtQueryType::PING;
+    DhtMessageType type_ = DhtMessageType::Query;
+    DhtQueryType query_type_ = DhtQueryType::Ping;
     
     // 通用字段
     std::string transaction_id_;    // "t" - 事务 ID

@@ -5,6 +5,8 @@
 #include "../protocols/peer_manager.h"
 #include "../protocols/bt_message.h"
 #include "../protocols/metadata_fetcher.h"
+#include "../protocols/tracker_client.h"
+#include "../storage/file_manager.h"
 
 #include <asio.hpp>
 #include <functional>
@@ -61,7 +63,7 @@ struct DownloadConfig {
     std::string magnet_uri;             // 磁力链接
     std::string save_path;              // 保存路径
     
-    size_t max_connections{50};         // 最大连接数
+    size_t max_connections{200};        // 最大连接数（大幅增加以提高速度）
     size_t max_download_speed{0};       // 最大下载速度 (0=无限制)
     size_t max_upload_speed{0};         // 最大上传速度
     
@@ -69,7 +71,7 @@ struct DownloadConfig {
     bool auto_start{true};              // 自动开始
     
     std::chrono::seconds metadata_timeout{300}; // 元数据获取超时 (5分钟)
-    std::chrono::seconds peer_search_interval{30}; // Peer 搜索间隔
+    std::chrono::seconds peer_search_interval{15}; // Peer 搜索间隔（缩短以更快发现新 peers）
 };
 
 // ============================================================================
@@ -175,6 +177,7 @@ struct PieceInfo {
     size_t downloaded{0};
     std::vector<bool> blocks;           // 块下载状态
     std::vector<uint8_t> data;          // 分片数据
+    std::chrono::steady_clock::time_point request_time;  // 请求时间（用于超时检测）
     
     bool isComplete() const {
         return downloaded >= size;
@@ -399,6 +402,12 @@ private:
     void requestMoreBlocks();
     
     /**
+     * @brief 重置超时的 pending pieces
+     * 将长时间没有响应的 pending pieces 重置为 missing 状态
+     */
+    void resetTimedOutPieces();
+    
+    /**
      * @brief 验证分片
      */
     bool verifyPiece(uint32_t piece_index);
@@ -434,6 +443,16 @@ private:
     void startPeerSearchTimer();
     
     /**
+     * @brief 启动下载停滞检测定时器
+     */
+    void startDownloadStallTimer();
+    
+    /**
+     * @brief 初始化文件存储
+     */
+    void initializeFileStorage();
+    
+    /**
      * @brief 计算分片大小
      */
     size_t getPieceSize(uint32_t piece_index) const;
@@ -465,19 +484,27 @@ private:
     std::shared_ptr<protocols::DhtClient> dht_client_;
     std::shared_ptr<protocols::PeerManager> peer_manager_;
     std::shared_ptr<protocols::MetadataFetcher> metadata_fetcher_;
+    std::shared_ptr<protocols::TrackerClient> tracker_client_;
+    std::unique_ptr<storage::FileManager> file_manager_;
     std::string my_peer_id_;
+    
+    // Tracker URLs
+    std::vector<std::string> tracker_urls_;
     
     // 进度
     mutable std::mutex progress_mutex_;
     DownloadProgress current_progress_;
     std::chrono::steady_clock::time_point start_time_;
     std::chrono::steady_clock::time_point last_progress_update_;
+    std::chrono::steady_clock::time_point last_download_progress_;  // 最后一次有实际下载进度的时间
     size_t last_downloaded_size_{0};
+    size_t stall_check_size_{0};  // 用于检测停滞的下载大小
     
     // 定时器
     asio::steady_timer progress_timer_;
     asio::steady_timer peer_search_timer_;
     asio::steady_timer metadata_timeout_timer_;
+    asio::steady_timer download_stall_timer_;  // 下载停滞检测定时器
     
     // 回调
     DownloadStateCallback state_callback_;

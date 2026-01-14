@@ -16,6 +16,7 @@
 #include <asio.hpp>
 #include "magnet/application/download_controller.h"
 #include "magnet/utils/logger.h"
+#include "magnet/version.h"
 
 using namespace magnet;
 
@@ -51,15 +52,17 @@ void printHelp(const char* program) {
     std::cout << R"(
 +--------------------------------------------------------------+
 |              MagnetDownload - Magnet Link Downloader         |
+|                    )" << magnet::Version::getVersionFull() << R"(                     |
 +--------------------------------------------------------------+
 |  Usage:                                                      |
 |    magnetdownload <magnet_uri> [options]                     |
 |                                                              |
 |  Options:                                                    |
 |    -o, --output <path>    Save path (default: current dir)   |
-|    -c, --connections <n>  Max connections (default: 50)      |
+|    -c, --connections <n>  Max connections (default: 200)     |
 |    -v, --verbose          Verbose output                     |
 |    -h, --help             Show help                          |
+|    --version              Show version information           |
 |                                                              |
 |  Example:                                                    |
 |    magnetdownload "magnet:?xt=urn:btih:..." -o ./downloads   |
@@ -67,6 +70,11 @@ void printHelp(const char* program) {
 |  Press Ctrl+C to stop download                               |
 +--------------------------------------------------------------+
 )" << std::endl;
+}
+
+// Print version information
+void printVersion() {
+    std::cout << magnet::Version::getCompleteInfo() << std::endl;
 }
 
 // 格式化文件大小
@@ -184,7 +192,7 @@ int main(int argc, char* argv[]) {
     
     std::string magnet_uri;
     std::string output_path = ".";
-    size_t max_connections = 50;
+    size_t max_connections = 100;
     bool verbose = false;
     
     for (int i = 1; i < argc; ++i) {
@@ -192,6 +200,9 @@ int main(int argc, char* argv[]) {
         
         if (arg == "-h" || arg == "--help") {
             printHelp(argv[0]);
+            return 0;
+        } else if (arg == "--version") {
+            printVersion();
             return 0;
         } else if (arg == "-o" || arg == "--output") {
             if (i + 1 < argc) {
@@ -203,7 +214,8 @@ int main(int argc, char* argv[]) {
             }
         } else if (arg == "-v" || arg == "--verbose") {
             verbose = true;
-        } else if (arg[0] != '-') {
+        } else if (arg[0] != '-' && magnet_uri.empty()) {
+            // 只有当magnet_uri还没有设置时，才设置第一个非选项参数为magnet_uri
             magnet_uri = arg;
         }
     }
@@ -216,15 +228,16 @@ int main(int argc, char* argv[]) {
     
     // Setup logging
     if (verbose) {
-        utils::Logger::instance().set_level(utils::LogLevel::DEBUG);
+        utils::Logger::instance().set_level(utils::LogLevel::Debug);
     } else {
-        utils::Logger::instance().set_level(utils::LogLevel::INFO);
+        utils::Logger::instance().set_level(utils::LogLevel::Info);
     }
     utils::Logger::instance().set_console_output(verbose);
     
     std::cout << R"(
 +--------------------------------------------------------------+
 |              MagnetDownload - Magnet Link Downloader         |
+|                    )" << magnet::Version::getVersionFull() << R"(                     |
 +--------------------------------------------------------------+
 )" << std::endl;
     
@@ -275,7 +288,7 @@ int main(int argc, char* argv[]) {
         config.magnet_uri = magnet_uri;
         config.save_path = output_path;
         config.max_connections = max_connections;
-        config.metadata_timeout = std::chrono::seconds(60);  // 60秒超时
+        config.metadata_timeout = std::chrono::seconds(120);  // 增加到 120 秒超时
         
         // Start download
         std::cout << "[*] Starting download..." << std::endl;

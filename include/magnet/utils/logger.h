@@ -12,12 +12,12 @@
 
 namespace magnet::utils {
     enum class LogLevel {
-        TRACE = 0,
-        DEBUG = 1,
-        INFO = 2,
-        WARN = 3,
-        ERR = 4,     
-        FATAL = 5
+        Trace = 0,
+        Debug = 1,
+        Info = 2,
+        Warn = 3,
+        Error = 4,     
+        Fatal = 5
     };
 
 
@@ -49,14 +49,14 @@ namespace magnet::utils {
 
         void flush();
 
-        void trace(const std::string& message) { log(LogLevel::TRACE, message);}
+        void trace(const std::string& message) { log(LogLevel::Trace, message);}
 
-        void debug(const std::string& message) { log(LogLevel::DEBUG, message);}
+        void debug(const std::string& message) { log(LogLevel::Debug, message);}
 
-        void info(const std::string& message) { log(LogLevel::INFO, message);}
-        void warn(const std::string& message) { log(LogLevel::WARN, message);}
-        void error(const std::string& message) { log(LogLevel::ERR, message);}
-        void fatal(const std::string& message) { log(LogLevel::FATAL, message);}
+        void info(const std::string& message) { log(LogLevel::Info, message);}
+        void warn(const std::string& message) { log(LogLevel::Warn, message);}
+        void error(const std::string& message) { log(LogLevel::Error, message);}
+        void fatal(const std::string& message) { log(LogLevel::Fatal, message);}
 
         template<typename... Args>
         void log_format(LogLevel level, const std::string& format, Args&&... args);
@@ -118,7 +118,7 @@ namespace magnet::utils {
 
         // config
     private:
-        std::atomic<LogLevel> min_level_{LogLevel::INFO};
+        std::atomic<LogLevel> min_level_{LogLevel::Info};
         std::atomic<bool> console_enabled_{true};
         std::atomic<bool> file_enable_{false};
         std::atomic<bool> async_enabled_{true};

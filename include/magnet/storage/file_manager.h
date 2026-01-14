@@ -7,6 +7,7 @@
 #include <mutex>
 #include <cstdint>
 #include <array>
+#include <memory>
 
 namespace magnet::storage {
 

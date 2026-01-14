@@ -27,19 +27,19 @@ namespace magnet::protocols {
  * @brief PeerManager 配置参数
  */
 struct PeerManagerConfig {
-    size_t max_connections{50};         // 最大连接数
-    size_t max_connecting{10};          // 最大同时连接中的数量
-    size_t max_pending{200};            // 最大等待连接的 Peer 数
+    size_t max_connections{200};        // 最大连接数（大幅增加）
+    size_t max_connecting{80};          // 最大同时连接中的数量
+    size_t max_pending{500};            // 最大等待连接的 Peer 数
     
-    std::chrono::seconds connect_timeout{30};
-    std::chrono::seconds reconnect_delay{60};   // 重连间隔
-    int max_connect_failures{3};                // 最大连接失败次数
+    std::chrono::seconds connect_timeout{8};   // 缩短超时时间，更快尝试其他 peers
+    std::chrono::seconds reconnect_delay{5};   // 重连间隔（缩短到5秒）
+    int max_connect_failures{10};              // 最大连接失败次数
     
-    size_t max_requests_per_peer{10};   // 每个 Peer 最大并发请求数
+    size_t max_requests_per_peer{128};  // 每个 Peer 最大并发请求数（关键：增加管道深度）
     
-    std::chrono::seconds peer_evaluation_interval{10};  // Peer 评估间隔
-    std::chrono::seconds optimistic_unchoke_interval{30}; // 乐观解阻塞间隔
-    size_t unchoke_slots{4};            // 解阻塞槽位数
+    std::chrono::seconds peer_evaluation_interval{5};   // Peer 评估间隔（更频繁）
+    std::chrono::seconds optimistic_unchoke_interval{20}; // 乐观解阻塞间隔
+    size_t unchoke_slots{8};            // 解阻塞槽位数（增加）
 };
 
 // ============================================================================

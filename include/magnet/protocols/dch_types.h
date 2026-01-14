@@ -73,13 +73,13 @@ namespace magnet::protocols {
         NodeId id_;
         std::string ip_;
         uint16_t port_;
-        std::chrono::steady_clock::time_point last_seen_;
         int failed_queries_ = 0;
+        std::chrono::steady_clock::time_point last_seen_;
 
         DhtNode() : port_(0), failed_queries_(0), last_seen_(std::chrono::steady_clock::now()) {}
 
         DhtNode(const NodeId& id, const std::string& ip, uint16_t port):
-        id_(id),ip_(ip),port_(port),last_seen_(std::chrono::steady_clock::now()){}
+        id_(id),ip_(ip),port_(port),failed_queries_(0),last_seen_(std::chrono::steady_clock::now()){}
 
         bool isGood() const {
             auto now = std::chrono::steady_clock::now();
@@ -214,16 +214,16 @@ namespace magnet::protocols {
     // ============================================================================
 
     enum class DhtMessageType {
-        QUERY,      // 查询 (y = "q")
-        RESPONSE,   // 响应 (y = "r")
-        DHT_ERROR   // 错误 (y = "e") - 注意：不能使用 ERROR，因为它是 Windows 宏
+        Query,      // 查询 (y = "q")
+        Response,   // 响应 (y = "r")
+        Error       // 错误 (y = "e")
     };
 
     enum class DhtQueryType {
-        PING,           // ping
-        FIND_NODE,      // find_node
-        GET_PEERS,      // get_peers
-        ANNOUNCE_PEER   // announce_peer
+        Ping,           // ping
+        FindNode,       // find_node
+        GetPeers,       // get_peers
+        AnnouncePeer    // announce_peer
     };
 
     // ============================================================================

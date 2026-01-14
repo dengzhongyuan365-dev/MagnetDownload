@@ -16,6 +16,7 @@ add_library(magnet_protocols STATIC
     peer_manager.cpp
     metadata_extension.cpp
     metadata_fetcher.cpp
+    tracker_client.cpp
 )
 
 target_include_directories(magnet_protocols

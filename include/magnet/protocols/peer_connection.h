@@ -361,6 +361,12 @@ public:
      * @brief 获取对方的 ut_metadata 扩展 ID
      */
     uint8_t peerMetadataExtensionId() const { return peer_metadata_ext_id_; }
+    
+    /**
+     * @brief 发送扩展握手消息
+     * 在 BT 握手成功后调用，用于协商扩展协议
+     */
+    void sendExtensionHandshake();
 
 private:
     // ========================================================================

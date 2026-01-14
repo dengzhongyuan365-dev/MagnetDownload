@@ -72,7 +72,7 @@ void PeerConnection::connect(const network::TcpEndpoint& endpoint,
         [self](const asio::error_code& ec) {
             self->onConnected(ec);
         },
-        std::chrono::seconds(30)  // 30 秒超时
+        std::chrono::seconds(30)  // 增加到 30 秒超时
     );
 }
 
@@ -343,25 +343,36 @@ void PeerConnection::sendHandshake() {
     auto handshake = Handshake::create(info_hash_, my_peer_id_);
     auto data = handshake.encode();
     
-    tcp_client_->send(data, [](const asio::error_code& ec, size_t) {
+    LOG_DEBUG("Sending handshake to " + peer_info_.toString() + 
+              ", size=" + std::to_string(data.size()) + " bytes" +
+              ", info_hash=" + info_hash_.toHex().substr(0, 16) + "..." +
+              ", peer_id=" + my_peer_id_.substr(0, 8) + "...");
+    
+    tcp_client_->send(data, [this](const asio::error_code& ec, size_t bytes_sent) {
         if (ec) {
             LOG_ERROR("Failed to send handshake: " + ec.message());
+        } else {
+            LOG_DEBUG("Handshake sent successfully, " + std::to_string(bytes_sent) + " bytes");
         }
     });
-    
-    LOG_DEBUG("Sent handshake to " + peer_info_.toString());
 }
 
 bool PeerConnection::handleHandshake() {
     // 握手消息是 68 字节
     if (receive_buffer_.size() < Handshake::kSize) {
+        LOG_DEBUG("Handshake incomplete, need " + std::to_string(Handshake::kSize) + 
+                  " bytes, have " + std::to_string(receive_buffer_.size()));
         return false;  // 数据不足
     }
+    
+    LOG_DEBUG("Attempting to decode handshake from " + peer_info_.toString() + 
+              ", buffer size=" + std::to_string(receive_buffer_.size()));
     
     // 解码握手
     auto handshake = Handshake::decode(receive_buffer_.data(), receive_buffer_.size());
     if (!handshake) {
-        LOG_ERROR("Invalid handshake from " + peer_info_.toString());
+        LOG_ERROR("Invalid handshake from " + peer_info_.toString() + 
+                  " - failed to decode");
         disconnect();
         if (connect_callback_) {
             connect_callback_(false);
@@ -369,10 +380,13 @@ bool PeerConnection::handleHandshake() {
         }
         return false;
     }
+    
+    LOG_DEBUG("Handshake decoded successfully from " + peer_info_.toString());
     
     // 验证 info_hash
     if (!handshake->matchInfoHash(info_hash_)) {
-        LOG_ERROR("info_hash mismatch from " + peer_info_.toString());
+        LOG_ERROR("info_hash mismatch from " + peer_info_.toString() + 
+                  " - expected " + info_hash_.toHex().substr(0, 16) + "...");
         disconnect();
         if (connect_callback_) {
             connect_callback_(false);
@@ -381,8 +395,15 @@ bool PeerConnection::handleHandshake() {
         return false;
     }
     
+    LOG_DEBUG("info_hash verified for " + peer_info_.toString());
+    
     // 保存 peer_id
     peer_info_.peer_id = handshake->peer_id;
+    
+    // 检查对方是否支持扩展协议
+    bool peer_supports_extension = handshake->supportsExtension();
+    LOG_DEBUG("Peer " + peer_info_.toString() + " supports extension: " + 
+              (peer_supports_extension ? "yes" : "no"));
     
     // 从缓冲区移除握手数据
     receive_buffer_.erase(receive_buffer_.begin(), 
@@ -393,10 +414,16 @@ bool PeerConnection::handleHandshake() {
     
     LOG_INFO("Handshake successful with " + peer_info_.toString());
     
-    // 回调通知
+    // 先调用回调通知（让 DownloadController 设置扩展握手和元数据回调）
+    // 这样才能正确处理对方的扩展握手响应
     if (connect_callback_) {
         connect_callback_(true);
         connect_callback_ = nullptr;
+    }
+    
+    // 然后再发送扩展握手（回调已设置，可以处理响应）
+    if (peer_supports_extension) {
+        sendExtensionHandshake();
     }
     
     return true;
@@ -645,6 +672,20 @@ void PeerConnection::handleExtendedMessage(const BtMessage& msg) {
     } else {
         LOG_DEBUG("Received unknown extension message id=" + std::to_string(ext_id));
     }
+}
+
+void PeerConnection::sendExtensionHandshake() {
+    if (!isConnected()) {
+        LOG_WARNING("Cannot send extension handshake: not connected");
+        return;
+    }
+    
+    // 创建扩展握手消息
+    auto handshake_data = MetadataExtension::createExtensionHandshake(std::nullopt);
+    auto msg = BtMessage::createExtended(extension::kExtensionHandshakeId, handshake_data);
+    
+    sendMessage(msg);
+    LOG_DEBUG("Sent extension handshake to " + peer_info_.toString());
 }
 
 } // namespace magnet::protocols

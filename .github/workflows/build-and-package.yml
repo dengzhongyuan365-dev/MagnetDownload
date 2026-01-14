@@ -1,0 +1,207 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [ main, dch, feature/* ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  # Windows 构建
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, x86]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0  # 获取完整历史用于版本信息
+    
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v1.3
+    
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: '2024.01.12'
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake `
+          -A ${{ matrix.arch == 'x64' && 'x64' || 'Win32' }} `
+          -DBUILD_TESTS=ON `
+          -DENABLE_PACKAGING=ON
+    
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+    
+    - name: Run tests
+      working-directory: build
+      run: ctest --build-config ${{ env.BUILD_TYPE }} --output-on-failure
+    
+    - name: Create packages
+      working-directory: build
+      run: cpack -C ${{ env.BUILD_TYPE }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: magnetdownload-windows-${{ matrix.arch }}
+        path: |
+          build/*.exe
+          build/*.zip
+          build/*.msi
+        retention-days: 30
+
+  # Linux 构建
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+        arch: [x64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          libssl-dev \
+          pkg-config \
+          rpm
+        
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          sudo apt-get install -y clang
+        fi
+    
+    - name: Setup compiler
+      run: |
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+        else
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+        fi
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_C_COMPILER=${{ env.CC }} \
+          -DCMAKE_CXX_COMPILER=${{ env.CXX }} \
+          -DBUILD_TESTS=ON \
+          -DENABLE_PACKAGING=ON \
+          -G Ninja
+    
+    - name: Build
+      run: cmake --build build --parallel
+    
+    - name: Run tests
+      working-directory: build
+      run: ctest --output-on-failure
+    
+    - name: Create packages
+      working-directory: build
+      run: cpack
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: magnetdownload-linux-${{ matrix.compiler }}-${{ matrix.arch }}
+        path: |
+          build/magnetdownload
+          build/*.deb
+          build/*.rpm
+          build/*.tar.gz
+        retention-days: 30
+
+  # macOS 构建
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    
+    - name: Install dependencies
+      run: |
+        brew install cmake ninja
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch == 'arm64' && 'arm64' || 'x86_64' }} \
+          -DBUILD_TESTS=ON \
+          -DENABLE_PACKAGING=ON \
+          -G Ninja
+    
+    - name: Build
+      run: cmake --build build --parallel
+    
+    - name: Run tests
+      working-directory: build
+      run: ctest --output-on-failure
+    
+    - name: Create packages
+      working-directory: build
+      run: cpack
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: magnetdownload-macos-${{ matrix.arch }}
+        path: |
+          build/magnetdownload
+          build/*.dmg
+          build/*.tar.gz
+        retention-days: 30
+
+  # 发布到 GitHub Releases
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/**/*
+        draft: false
+        prerelease: ${{ contains(github.ref, '-') }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
