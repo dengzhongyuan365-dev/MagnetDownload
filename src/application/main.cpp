@@ -16,6 +16,7 @@
 #include <asio.hpp>
 #include "magnet/application/download_controller.h"
 #include "magnet/utils/logger.h"
+#include "magnet/version.h"
 
 using namespace magnet;
 
@@ -51,6 +52,7 @@ void printHelp(const char* program) {
     std::cout << R"(
 +--------------------------------------------------------------+
 |              MagnetDownload - Magnet Link Downloader         |
+|                    )" << magnet::Version::getVersionFull() << R"(                     |
 +--------------------------------------------------------------+
 |  Usage:                                                      |
 |    magnetdownload <magnet_uri> [options]                     |
@@ -60,6 +62,7 @@ void printHelp(const char* program) {
 |    -c, --connections <n>  Max connections (default: 200)     |
 |    -v, --verbose          Verbose output                     |
 |    -h, --help             Show help                          |
+|    --version              Show version information           |
 |                                                              |
 |  Example:                                                    |
 |    magnetdownload "magnet:?xt=urn:btih:..." -o ./downloads   |
@@ -67,6 +70,11 @@ void printHelp(const char* program) {
 |  Press Ctrl+C to stop download                               |
 +--------------------------------------------------------------+
 )" << std::endl;
+}
+
+// Print version information
+void printVersion() {
+    std::cout << magnet::Version::getCompleteInfo() << std::endl;
 }
 
 // 格式化文件大小
@@ -193,6 +201,9 @@ int main(int argc, char* argv[]) {
         if (arg == "-h" || arg == "--help") {
             printHelp(argv[0]);
             return 0;
+        } else if (arg == "--version") {
+            printVersion();
+            return 0;
         } else if (arg == "-o" || arg == "--output") {
             if (i + 1 < argc) {
                 output_path = argv[++i];
@@ -226,6 +237,7 @@ int main(int argc, char* argv[]) {
     std::cout << R"(
 +--------------------------------------------------------------+
 |              MagnetDownload - Magnet Link Downloader         |
+|                    )" << magnet::Version::getVersionFull() << R"(                     |
 +--------------------------------------------------------------+
 )" << std::endl;
     
