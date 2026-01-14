@@ -19,6 +19,34 @@ namespace magnet::application {
 #define LOG_ERROR(msg) magnet::utils::Logger::instance().error(msg)
 
 // ============================================================================
+// 常量定义
+// ============================================================================
+
+/**
+ * @brief 公共 Tracker 列表
+ * 
+ * 用于磁力链接没有 Tracker 时的备用列表
+ * 按可靠性和速度排序
+ */
+static const std::vector<std::string> kPublicTrackers = {
+    // OpenTrackr - 最可靠
+    "http://tracker.opentrackr.org:1337/announce",
+    "udp://tracker.opentrackr.org:1337/announce",
+    
+    // OpenBitTorrent - 稳定
+    "http://tracker.openbittorrent.com:80/announce",
+    "udp://tracker.openbittorrent.com:80/announce",
+    
+    // 其他公共 Trackers
+    "http://nyaa.tracker.wf:7777/announce",
+    "http://tracker.gbitt.info:80/announce",
+    "http://tracker1.bt.moack.co.kr:80/announce",
+    "http://tracker.mywaifu.best:6969/announce",
+    "http://tracker2.dler.org:80/announce",
+    "http://bt.okmp3.ru:2710/announce"
+};
+
+// ============================================================================
 // 构造和析构
 // ============================================================================
 
@@ -87,17 +115,49 @@ bool DownloadController::start(const DownloadConfig& config) {
     
     // 保存 Tracker URLs
     tracker_urls_ = magnet_info.trackers;
+    
+    // 如果磁力链接没有 Tracker，添加公共 Tracker 列表（提高成功率）
+    if (tracker_urls_.empty()) {
+        LOG_WARNING("No trackers in magnet link, adding public trackers");
+        tracker_urls_ = kPublicTrackers;
+    }
+    
     LOG_INFO("info_hash: " + magnet_info.info_hash->toHex());
     LOG_INFO("Found " + std::to_string(tracker_urls_.size()) + " trackers in magnet link");
     
     // 通知状态变化
     setState(DownloadState::ResolvingMetadata);
     
-    // 初始化 TrackerClient（但先不请求，等有元数据后再用）
+    // 初始化 TrackerClient
     if (!tracker_urls_.empty()) {
         tracker_client_ = std::make_shared<protocols::TrackerClient>(
             io_context_, magnet_info.info_hash.value(), my_peer_id_, 6881);
         LOG_INFO("TrackerClient initialized with " + std::to_string(tracker_urls_.size()) + " trackers");
+        
+        // 立即向 Tracker 请求 peers（提高冷门种子的速度）
+        LOG_INFO("Immediately requesting peers from trackers...");
+        auto self = shared_from_this();
+        tracker_client_->announceAll(tracker_urls_, 0, 0, 0,
+            [self](const protocols::TrackerResponse& response) {
+                if (response.success && !response.peers.empty()) {
+                    LOG_INFO("✓ Got " + std::to_string(response.peers.size()) + " peers from tracker");
+                    
+                    size_t peers_to_add = std::min(response.peers.size(), size_t(50));
+                    
+                    std::vector<protocols::PeerInfo> peers;
+                    peers.reserve(peers_to_add);
+                    for (size_t i = 0; i < peers_to_add; ++i) {
+                        const auto& ep = response.peers[i];
+                        protocols::PeerInfo peer;
+                        peer.ip = ep.ip;
+                        peer.port = ep.port;
+                        peers.push_back(peer);
+                    }
+                    self->onPeersFound(peers);
+                } else if (!response.failure_reason.empty()) {
+                    LOG_WARNING("✗ Tracker failed: " + response.failure_reason);
+                }
+            });
     }
     
     // 初始化 DHT（用于获取元数据和 peers）
@@ -378,15 +438,11 @@ void DownloadController::initializeDht() {
     protocols::DhtClientConfig dht_config;
     dht_config.listen_port = 6881;  // 固定端口，方便防火墙配置
     
-    // 添加引导节点 - 使用多个公共 DHT 节点增加成功率
+    // 只使用最稳定的 DHT 节点（移除不稳定的以节省时间）
     dht_config.bootstrap_nodes = {
         {"router.bittorrent.com", 6881},
         {"router.utorrent.com", 6881},
-        {"dht.transmissionbt.com", 6881},
-        {"dht.libtorrent.org", 25401},
-        {"dht.aelitis.com", 6881},
-        {"router.bitcomet.com", 6881},
-        {"dht.vuze.com", 6881}
+        {"dht.transmissionbt.com", 6881}
     };
     
     // 大幅增加超时时间（国内网络环境需要更长时间）
@@ -454,8 +510,12 @@ void DownloadController::findPeers() {
             });
     }
     
-    // 2. 只在连接数不足时才使用 Tracker（避免过度请求）
-    if (tracker_client_ && !tracker_urls_.empty() && connected_peers < 10) {
+    // 2. 使用 Tracker（更积极的策略以提高速度）
+    //    当连接数 < 20 或 DHT 失效时使用 Tracker
+    bool use_tracker = (connected_peers < 20) || 
+                       (dht_client_ && !dht_client_->isBootstrapped());
+    
+    if (tracker_client_ && !tracker_urls_.empty() && use_tracker) {
         uint64_t downloaded = 0, left = 0;
         {
             std::lock_guard<std::mutex> lock(progress_mutex_);
@@ -464,15 +524,15 @@ void DownloadController::findPeers() {
                    current_progress_.total_size - downloaded : 0;
         }
         
-        LOG_INFO("Connected peers low (" + std::to_string(connected_peers) + "), requesting from tracker");
+        LOG_INFO("Requesting peers from tracker (connected: " + std::to_string(connected_peers) + ")");
         
         tracker_client_->announceAll(tracker_urls_, downloaded, 0, left,
             [self](const protocols::TrackerResponse& response) {
                 if (response.success && !response.peers.empty()) {
                     LOG_INFO("Tracker returned " + std::to_string(response.peers.size()) + " peers");
                     
-                    // 限制每次添加的 peers 数量（避免低质量 peers 占满队列）
-                    size_t peers_to_add = std::min(response.peers.size(), size_t(50));
+                    // 增加添加的 peers 数量（冷门种子需要更多尝试）
+                    size_t peers_to_add = std::min(response.peers.size(), size_t(80));
                     
                     std::vector<protocols::PeerInfo> peers;
                     peers.reserve(peers_to_add);

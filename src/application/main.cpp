@@ -288,7 +288,7 @@ int main(int argc, char* argv[]) {
         config.magnet_uri = magnet_uri;
         config.save_path = output_path;
         config.max_connections = max_connections;
-        config.metadata_timeout = std::chrono::seconds(120);  // 增加到 120 秒超时
+        config.metadata_timeout = std::chrono::seconds(180);
         
         // Start download
         std::cout << "[*] Starting download..." << std::endl;
