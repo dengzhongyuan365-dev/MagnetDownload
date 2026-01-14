@@ -670,11 +670,14 @@ void DownloadController::initializeFileStorage() {
     storage_config.total_size = meta.total_size;
     
     // 添加文件信息
+    size_t current_offset = 0;
     for (const auto& file : meta.files) {
         storage::FileEntry entry;
         entry.path = file.path;
         entry.size = file.size;
+        entry.offset = current_offset;
         storage_config.files.push_back(entry);
+        current_offset += file.size;
     }
     
     // 如果没有文件列表，使用种子名称
@@ -682,6 +685,7 @@ void DownloadController::initializeFileStorage() {
         storage::FileEntry entry;
         entry.path = meta.name;
         entry.size = meta.total_size;
+        entry.offset = 0;  // 单文件偏移为 0
         storage_config.files.push_back(entry);
     }
     
