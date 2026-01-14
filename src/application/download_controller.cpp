@@ -93,34 +93,14 @@ bool DownloadController::start(const DownloadConfig& config) {
     // 通知状态变化
     setState(DownloadState::ResolvingMetadata);
     
-    // 初始化 TrackerClient（优先使用 Tracker）
+    // 初始化 TrackerClient（但先不请求，等有元数据后再用）
     if (!tracker_urls_.empty()) {
         tracker_client_ = std::make_shared<protocols::TrackerClient>(
             io_context_, magnet_info.info_hash.value(), my_peer_id_, 6881);
-        
-        // 立即向所有 Tracker 发送请求
-        auto self = shared_from_this();
-        tracker_client_->announceAll(tracker_urls_, 0, 0, 0,
-            [self](const protocols::TrackerResponse& response) {
-                if (response.success && !response.peers.empty()) {
-                    LOG_INFO("Got " + std::to_string(response.peers.size()) + " peers from tracker");
-                    
-                    // 转换为 PeerInfo
-                    std::vector<protocols::PeerInfo> peers;
-                    for (const auto& ep : response.peers) {
-                        protocols::PeerInfo peer;
-                        peer.ip = ep.ip;
-                        peer.port = ep.port;
-                        peers.push_back(peer);
-                    }
-                    self->onPeersFound(peers);
-                } else if (!response.failure_reason.empty()) {
-                    LOG_WARNING("Tracker failed: " + response.failure_reason);
-                }
-            });
+        LOG_INFO("TrackerClient initialized with " + std::to_string(tracker_urls_.size()) + " trackers");
     }
     
-    // 初始化 DHT（作为备用）
+    // 初始化 DHT（用于获取元数据和 peers）
     initializeDht();
     
     // 启动元数据超时定时器
@@ -445,43 +425,22 @@ void DownloadController::initializeDht() {
 
 void DownloadController::findPeers() {
     protocols::InfoHash info_hash;
+    size_t connected_peers = 0;
     {
         std::lock_guard<std::mutex> lock(metadata_mutex_);
         info_hash = metadata_.info_hash;
     }
+    {
+        std::lock_guard<std::mutex> lock(progress_mutex_);
+        connected_peers = current_progress_.connected_peers;
+    }
     
-    LOG_DEBUG("Searching for peers for " + info_hash.toHex());
+    LOG_DEBUG("Searching for peers for " + info_hash.toHex() + 
+              ", currently connected: " + std::to_string(connected_peers));
     
     auto self = shared_from_this();
     
-    // 1. 使用 Tracker 获取 peers（优先）
-    if (tracker_client_ && !tracker_urls_.empty()) {
-        uint64_t downloaded = 0, left = 0;
-        {
-            std::lock_guard<std::mutex> lock(progress_mutex_);
-            downloaded = current_progress_.downloaded_size;
-            left = current_progress_.total_size > downloaded ? 
-                   current_progress_.total_size - downloaded : 0;
-        }
-        
-        tracker_client_->announceAll(tracker_urls_, downloaded, 0, left,
-            [self](const protocols::TrackerResponse& response) {
-                if (response.success && !response.peers.empty()) {
-                    LOG_INFO("Tracker returned " + std::to_string(response.peers.size()) + " peers");
-                    
-                    std::vector<protocols::PeerInfo> peers;
-                    for (const auto& ep : response.peers) {
-                        protocols::PeerInfo peer;
-                        peer.ip = ep.ip;
-                        peer.port = ep.port;
-                        peers.push_back(peer);
-                    }
-                    self->onPeersFound(peers);
-                }
-            });
-    }
-    
-    // 2. 同时使用 DHT 获取 peers（备用）
+    // 1. 优先使用 DHT（质量高，逐步发现）
     if (dht_client_) {
         dht_client_->findPeers(info_hash, 
             [self](const protocols::PeerInfo& peer) {
@@ -491,6 +450,40 @@ void DownloadController::findPeers() {
             [self](bool success, const std::vector<protocols::PeerInfo>& all_peers) {
                 if (success && !all_peers.empty()) {
                     LOG_INFO("DHT lookup complete, found " + std::to_string(all_peers.size()) + " peers");
+                }
+            });
+    }
+    
+    // 2. 只在连接数不足时才使用 Tracker（避免过度请求）
+    if (tracker_client_ && !tracker_urls_.empty() && connected_peers < 10) {
+        uint64_t downloaded = 0, left = 0;
+        {
+            std::lock_guard<std::mutex> lock(progress_mutex_);
+            downloaded = current_progress_.downloaded_size;
+            left = current_progress_.total_size > downloaded ? 
+                   current_progress_.total_size - downloaded : 0;
+        }
+        
+        LOG_INFO("Connected peers low (" + std::to_string(connected_peers) + "), requesting from tracker");
+        
+        tracker_client_->announceAll(tracker_urls_, downloaded, 0, left,
+            [self](const protocols::TrackerResponse& response) {
+                if (response.success && !response.peers.empty()) {
+                    LOG_INFO("Tracker returned " + std::to_string(response.peers.size()) + " peers");
+                    
+                    // 限制每次添加的 peers 数量（避免低质量 peers 占满队列）
+                    size_t peers_to_add = std::min(response.peers.size(), size_t(50));
+                    
+                    std::vector<protocols::PeerInfo> peers;
+                    peers.reserve(peers_to_add);
+                    for (size_t i = 0; i < peers_to_add; ++i) {
+                        const auto& ep = response.peers[i];
+                        protocols::PeerInfo peer;
+                        peer.ip = ep.ip;
+                        peer.port = ep.port;
+                        peers.push_back(peer);
+                    }
+                    self->onPeersFound(peers);
                 }
             });
     }
