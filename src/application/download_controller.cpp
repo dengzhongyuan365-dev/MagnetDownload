@@ -721,20 +721,21 @@ void DownloadController::initializeFileStorage() {
     storage_config.base_path = base_path;
     storage_config.piece_length = meta.piece_length;
     storage_config.total_size = meta.total_size;
-    
+
     // 添加文件信息
     size_t current_offset = 0;
-    for (const auto& file : meta.files) {
-        storage::FileEntry entry;
-        entry.path = file.path;
-        entry.size = file.size;
-        entry.offset = current_offset;
-        storage_config.files.push_back(entry);
-        current_offset += file.size;
-    }
-    
-    // 如果没有文件列表，使用种子名称
-    if (storage_config.files.empty()) {
+    if (!meta.files.empty()) {
+        for (const auto& file : meta.files) {
+            storage::FileEntry entry;
+            entry.path = file.path;
+            entry.size = file.size;
+            entry.offset = current_offset;
+            storage_config.files.push_back(entry);
+            current_offset += file.size;
+        }
+        
+    } else {
+        // 如果没有文件列表，使用种子名称
         storage::FileEntry entry;
         entry.path = meta.name;
         entry.size = meta.total_size;

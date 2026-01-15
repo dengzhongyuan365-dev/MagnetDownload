@@ -110,33 +110,42 @@ include(cmake/version.cmake)
 # 添加生成的头文件目录到包含路径
 include_directories(${CMAKE_BINARY_DIR}/include)
 
-# Google Test 配置
+# Google Test 配置（源码集成，类似Asio但需要编译）
 if(BUILD_TESTS)
     message(STATUS "Looking for Google Test...")
     
-    # 优先使用vcpkg安装的GTest
-    find_package(GTest QUIET)
-    
-    if(GTest_FOUND)
-        message(STATUS "Found GTest via vcpkg (v${GTest_VERSION})")
-        message(STATUS "  Include: ${GTEST_INCLUDE_DIRS}")
-        message(STATUS "  Libraries: ${GTEST_LIBRARIES}")
-    else()
-        # 备用方案：使用本地源码
-        message(STATUS "GTest not found in vcpkg, checking local source...")
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
-            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-            add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
-            message(STATUS "Using local Google Test from 3rd/googletest")
-        else()
-            message(WARNING 
-                "Google Test not found! Tests will be disabled.\n"
-                "Options:\n"
-                "  1. Ensure vcpkg is installed and GTest is available\n"
-                "  2. Download to 3rd/googletest: git clone https://github.com/google/googletest.git\n"
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
+        # 创建GTest库目标（需要编译，不是INTERFACE）
+        set(gtest_force_shared_crt ON CACHE BOOL "Use shared CRT for GTest" FORCE)
+        set(gtest_disable_pthreads OFF CACHE BOOL "Disable pthreads" FORCE)
+        
+        # 添加子目录，会编译gtest和gtest_main
+        add_subdirectory(3rd/googletest)
+        
+        # 创建统一的GTest导入目标（类似Asio的做法）
+        # 这样其他模块可以统一使用 GTest::GTest
+        if(NOT TARGET GTest::GTest)
+            add_library(GTest::GTest INTERFACE IMPORTED)
+            target_link_libraries(GTest::GTest INTERFACE gtest gtest_main)
+            target_include_directories(GTest::GTest INTERFACE
+                ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googletest/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googlemock/include
             )
-            set(BUILD_TESTS OFF)
         endif()
+        
+        # 设置编译定义（可选）
+        target_compile_definitions(gtest PRIVATE GTEST_HAS_PTHREAD=1)
+        target_compile_definitions(gtest_main PRIVATE GTEST_HAS_PTHREAD=1)
+        
+        message(STATUS "✓ Google Test configured from local source")
+        message(STATUS "  Include: ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/googletest/include")
+        
+    else()
+        message(WARNING "Google Test not found at 3rd/googletest/")
+        message(STATUS "Please ensure googletest source code is in 3rd/googletest/")
+        message(STATUS "You can download it with:")
+        message(STATUS "  git clone https://github.com/google/googletest.git 3rd/googletest")
+        set(BUILD_TESTS OFF)
     endif()
 endif()
 
