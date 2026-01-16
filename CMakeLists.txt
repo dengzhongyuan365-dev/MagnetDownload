@@ -15,13 +15,11 @@ project(MagnetDownload
     HOMEPAGE_URL "https://github.com/yourusername/MagnetDownload"
 )
 
-# 新增启用vcpkg
+# vcpkg 支持（可选）
 if(DEFINED ENV{VCPKG_ROOT})
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
         CACHE STRING "Vcpkg toolchain file")
     message(STATUS "Using vcpkg from: $ENV{VCPKG_ROOT}")
-else()
-    message(WARNING "VCPKG_ROOT not set, vcpkg will not be used")
 endif()
 
 # 设置C++标准
@@ -110,33 +108,21 @@ include(cmake/version.cmake)
 # 添加生成的头文件目录到包含路径
 include_directories(${CMAKE_BINARY_DIR}/include)
 
-# Google Test 配置
+# 配置 Google Test 库（本地源码版）
 if(BUILD_TESTS)
-    message(STATUS "Looking for Google Test...")
-    
-    # 优先使用vcpkg安装的GTest
-    find_package(GTest QUIET)
-    
-    if(GTest_FOUND)
-        message(STATUS "Found GTest via vcpkg (v${GTest_VERSION})")
-        message(STATUS "  Include: ${GTEST_INCLUDE_DIRS}")
-        message(STATUS "  Libraries: ${GTEST_LIBRARIES}")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
+        # 设置 gtest 选项
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        
+        # 添加 googletest 子目录
+        add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
+        
+        message(STATUS "Found Google Test at: ${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest")
     else()
-        # 备用方案：使用本地源码
-        message(STATUS "GTest not found in vcpkg, checking local source...")
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rd/googletest/CMakeLists.txt")
-            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-            add_subdirectory(3rd/googletest EXCLUDE_FROM_ALL)
-            message(STATUS "Using local Google Test from 3rd/googletest")
-        else()
-            message(WARNING 
-                "Google Test not found! Tests will be disabled.\n"
-                "Options:\n"
-                "  1. Ensure vcpkg is installed and GTest is available\n"
-                "  2. Download to 3rd/googletest: git clone https://github.com/google/googletest.git\n"
-            )
-            set(BUILD_TESTS OFF)
-        endif()
+        message(FATAL_ERROR "Google Test not found! Please ensure GTest source is available in 3rd/googletest")
+        set(BUILD_TESTS OFF)
     endif()
 endif()
 
