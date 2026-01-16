@@ -14,8 +14,8 @@ add_executable(magnet_tests
 # 链接库
 target_link_libraries(magnet_tests
     PRIVATE
-        GTest::gtest
-        GTest::gtest_main
+        gtest
+        gtest_main
         Threads::Threads
 )
 
