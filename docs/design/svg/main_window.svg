@@ -1,0 +1,135 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <!-- 主窗口背景 -->
+  <rect width="1200" height="800" fill="#2C3E50" stroke="#34495E" stroke-width="1"/>
+  
+  <!-- 标题栏 -->
+  <rect x="0" y="0" width="1200" height="32" fill="#34495E"/>
+  <text x="16" y="22" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">🧲 MagnetDownload v2.0</text>
+  <g transform="translate(1120, 8)">
+    <rect x="0" y="0" width="24" height="16" fill="#F39C12" rx="2"/>
+    <text x="12" y="12" fill="white" font-family="Arial" font-size="10" text-anchor="middle">🗕</text>
+    <rect x="28" y="0" width="24" height="16" fill="#27AE60" rx="2"/>
+    <text x="40" y="12" fill="white" font-family="Arial" font-size="10" text-anchor="middle">🗗</text>
+    <rect x="56" y="0" width="24" height="16" fill="#E74C3C" rx="2"/>
+    <text x="68" y="12" fill="white" font-family="Arial" font-size="10" text-anchor="middle">✕</text>
+  </g>
+  
+  <!-- 菜单栏 -->
+  <rect x="0" y="32" width="1200" height="28" fill="#2C3E50" stroke="#34495E" stroke-width="1"/>
+  <text x="16" y="50" fill="#ECF0F1" font-family="Arial" font-size="12">File</text>
+  <text x="60" y="50" fill="#ECF0F1" font-family="Arial" font-size="12">Edit</text>
+  <text x="100" y="50" fill="#ECF0F1" font-family="Arial" font-size="12">View</text>
+  <text x="140" y="50" fill="#ECF0F1" font-family="Arial" font-size="12">Tools</text>
+  <text x="180" y="50" fill="#ECF0F1" font-family="Arial" font-size="12">Help</text>
+  
+  <!-- 工具栏 -->
+  <rect x="0" y="60" width="1200" height="48" fill="#34495E" stroke="#7F8C8D" stroke-width="1"/>
+  <g transform="translate(16, 68)">
+    <!-- 添加按钮 -->
+    <rect x="0" y="0" width="80" height="32" fill="#3498DB" rx="4"/>
+    <text x="40" y="20" fill="white" font-family="Arial" font-size="11" text-anchor="middle">📎 Add</text>
+    
+    <!-- 暂停按钮 -->
+    <rect x="88" y="0" width="80" height="32" fill="#95A5A6" rx="4"/>
+    <text x="128" y="20" fill="white" font-family="Arial" font-size="11" text-anchor="middle">⏸️ Pause</text>
+    
+    <!-- 恢复按钮 -->
+    <rect x="176" y="0" width="80" height="32" fill="#27AE60" rx="4"/>
+    <text x="216" y="20" fill="white" font-family="Arial" font-size="11" text-anchor="middle">▶️ Resume</text>
+    
+    <!-- 删除按钮 -->
+    <rect x="264" y="0" width="80" height="32" fill="#E74C3C" rx="4"/>
+    <text x="304" y="20" fill="white" font-family="Arial" font-size="11" text-anchor="middle">🗑️ Delete</text>
+    
+    <!-- 设置按钮 -->
+    <rect x="352" y="0" width="80" height="32" fill="#9B59B6" rx="4"/>
+    <text x="392" y="20" fill="white" font-family="Arial" font-size="11" text-anchor="middle">⚙️ Settings</text>
+    
+    <!-- 统计按钮 -->
+    <rect x="440" y="0" width="80" height="32" fill="#16A085" rx="4"/>
+    <text x="480" y="20" fill="white" font-family="Arial" font-size="11" text-anchor="middle">📊 Stats</text>
+  </g>
+  
+  <!-- 磁力链接输入区域 -->
+  <rect x="16" y="120" width="1168" height="40" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  <text x="24" y="142" fill="#BDC3C7" font-family="Arial" font-size="12">🔍 magnet:?xt=urn:btih:1234567890abcdef...</text>
+  <rect x="1080" y="128" width="80" height="24" fill="#3498DB" rx="4"/>
+  <text x="1120" y="142" fill="white" font-family="Arial" font-size="11" text-anchor="middle">Parse</text>
+  
+  <!-- 下载列表区域 -->
+  <rect x="16" y="176" width="1168" height="320" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  <text x="24" y="196" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">Download Queue</text>
+  
+  <!-- 表格头部 -->
+  <rect x="24" y="204" width="1152" height="32" fill="#2C3E50"/>
+  <text x="32" y="224" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Name</text>
+  <text x="400" y="224" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Size</text>
+  <text x="500" y="224" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Progress</text>
+  <text x="700" y="224" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Speed</text>
+  <text x="800" y="224" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Status</text>
+  <text x="900" y="224" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">ETA</text>
+  
+  <!-- 下载项目1 -->
+  <rect x="24" y="236" width="1152" height="40" fill="#3498DB" fill-opacity="0.2"/>
+  <text x="32" y="258" fill="#ECF0F1" font-family="Arial" font-size="12">📁 Ubuntu 22.04 ISO</text>
+  <text x="400" y="258" fill="#ECF0F1" font-family="Arial" font-size="12">4.7GB</text>
+  <!-- 进度条 -->
+  <rect x="500" y="248" width="150" height="16" fill="#7F8C8D" rx="8"/>
+  <rect x="500" y="248" width="120" height="16" fill="#27AE60" rx="8"/>
+  <text x="575" y="258" fill="white" font-family="Arial" font-size="10" text-anchor="middle">80%</text>
+  <text x="700" y="258" fill="#ECF0F1" font-family="Arial" font-size="12">5.2MB/s</text>
+  <text x="800" y="258" fill="#27AE60" font-family="Arial" font-size="12">Active</text>
+  <text x="900" y="258" fill="#ECF0F1" font-family="Arial" font-size="12">2m</text>
+  
+  <!-- 下载项目2 -->
+  <rect x="24" y="276" width="1152" height="40" fill="#34495E"/>
+  <text x="32" y="298" fill="#ECF0F1" font-family="Arial" font-size="12">🎬 Movie Collection</text>
+  <text x="400" y="298" fill="#ECF0F1" font-family="Arial" font-size="12">12.1GB</text>
+  <rect x="500" y="288" width="150" height="16" fill="#27AE60" rx="8"/>
+  <text x="575" y="298" fill="white" font-family="Arial" font-size="10" text-anchor="middle">100%</text>
+  <text x="700" y="298" fill="#ECF0F1" font-family="Arial" font-size="12">0KB/s</text>
+  <text x="800" y="298" fill="#27AE60" font-family="Arial" font-size="12">Done</text>
+  <text x="900" y="298" fill="#ECF0F1" font-family="Arial" font-size="12">-</text>
+  
+  <!-- 下载项目3 -->
+  <rect x="24" y="316" width="1152" height="40" fill="#34495E"/>
+  <text x="32" y="338" fill="#ECF0F1" font-family="Arial" font-size="12">📦 Software Bundle</text>
+  <text x="400" y="338" fill="#ECF0F1" font-family="Arial" font-size="12">856MB</text>
+  <rect x="500" y="328" width="150" height="16" fill="#7F8C8D" rx="8"/>
+  <rect x="500" y="328" width="30" height="16" fill="#F39C12" rx="8"/>
+  <text x="575" y="338" fill="white" font-family="Arial" font-size="10" text-anchor="middle">20%</text>
+  <text x="700" y="338" fill="#ECF0F1" font-family="Arial" font-size="12">1.8MB/s</text>
+  <text x="800" y="338" fill="#F39C12" font-family="Arial" font-size="12">Active</text>
+  <text x="900" y="338" fill="#ECF0F1" font-family="Arial" font-size="12">8m</text>
+  
+  <!-- 详细信息面板 -->
+  <rect x="16" y="512" width="1168" height="240" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  <text x="24" y="532" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">Details Panel</text>
+  
+  <!-- 标签页 -->
+  <g transform="translate(24, 540)">
+    <rect x="0" y="0" width="80" height="28" fill="#3498DB" rx="4"/>
+    <text x="40" y="18" fill="white" font-family="Arial" font-size="11" text-anchor="middle">📋 General</text>
+    <rect x="88" y="0" width="80" height="28" fill="#2C3E50" rx="4"/>
+    <text x="128" y="18" fill="#ECF0F1" font-family="Arial" font-size="11" text-anchor="middle">📁 Files</text>
+    <rect x="176" y="0" width="80" height="28" fill="#2C3E50" rx="4"/>
+    <text x="216" y="18" fill="#ECF0F1" font-family="Arial" font-size="11" text-anchor="middle">👥 Peers</text>
+    <rect x="264" y="0" width="80" height="28" fill="#2C3E50" rx="4"/>
+    <text x="304" y="18" fill="#ECF0F1" font-family="Arial" font-size="11" text-anchor="middle">📊 Stats</text>
+  </g>
+  
+  <!-- 详细信息内容 -->
+  <g transform="translate(32, 580)">
+    <text x="0" y="20" fill="#ECF0F1" font-family="Arial" font-size="12">Name: Ubuntu 22.04.3 Desktop amd64</text>
+    <text x="0" y="40" fill="#ECF0F1" font-family="Arial" font-size="12">Size: 4.7 GB (5,050,875,904 bytes)</text>
+    <text x="0" y="60" fill="#ECF0F1" font-family="Arial" font-size="12">Location: /home/user/Downloads/Ubuntu/</text>
+    <text x="0" y="80" fill="#ECF0F1" font-family="Arial" font-size="12">Created: 2023-08-10 14:30:25</text>
+    <text x="0" y="100" fill="#ECF0F1" font-family="Arial" font-size="12">Added: 2024-01-14 18:45:12</text>
+    <text x="0" y="120" fill="#ECF0F1" font-family="Arial" font-size="12">Hash: 1234567890abcdef1234567890abcdef12345678</text>
+    <text x="0" y="140" fill="#ECF0F1" font-family="Arial" font-size="12">Comment: Official Ubuntu 22.04.3 Desktop ISO image</text>
+  </g>
+  
+  <!-- 状态栏 -->
+  <rect x="0" y="768" width="1200" height="32" fill="#2C3E50" stroke="#34495E" stroke-width="1"/>
+  <text x="16" y="786" fill="#ECF0F1" font-family="Arial" font-size="12">📊 Global: ⬇️ 15.2 MB/s  ⬆️ 2.1 MB/s  👥 45 peers  💾 Free: 128 GB</text>
+</svg>

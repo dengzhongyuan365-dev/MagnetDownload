@@ -1,0 +1,122 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- 对话框背景 -->
+  <rect width="800" height="600" fill="#34495E" stroke="#7F8C8D" stroke-width="2" rx="8"/>
+  
+  <!-- 标题栏 -->
+  <rect x="0" y="0" width="800" height="40" fill="#2C3E50" rx="8"/>
+  <rect x="0" y="32" width="800" height="8" fill="#2C3E50"/>
+  <text x="20" y="26" fill="#ECF0F1" font-family="Arial" font-size="16" font-weight="bold">⚙️ Settings</text>
+  <rect x="760" y="8" width="24" height="24" fill="#E74C3C" rx="4"/>
+  <text x="772" y="24" fill="white" font-family="Arial" font-size="14" text-anchor="middle">✕</text>
+  
+  <!-- 左侧导航栏 -->
+  <rect x="20" y="60" width="180" height="480" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <g transform="translate(28, 80)" font-family="Arial" font-size="12">
+    <!-- 当前选中的页面 -->
+    <rect x="0" y="0" width="164" height="32" fill="#3498DB" rx="4"/>
+    <text x="12" y="20" fill="white">📂 General</text>
+    
+    <rect x="0" y="40" width="164" height="32" fill="transparent" rx="4"/>
+    <text x="12" y="60" fill="#ECF0F1">🌐 Connection</text>
+    
+    <rect x="0" y="80" width="164" height="32" fill="transparent" rx="4"/>
+    <text x="12" y="100" fill="#ECF0F1">⚡ Speed</text>
+    
+    <rect x="0" y="120" width="164" height="32" fill="transparent" rx="4"/>
+    <text x="12" y="140" fill="#ECF0F1">📁 Downloads</text>
+    
+    <rect x="0" y="160" width="164" height="32" fill="transparent" rx="4"/>
+    <text x="12" y="180" fill="#ECF0F1">🔒 Privacy</text>
+    
+    <rect x="0" y="200" width="164" height="32" fill="transparent" rx="4"/>
+    <text x="12" y="220" fill="#ECF0F1">🎨 Interface</text>
+    
+    <rect x="0" y="240" width="164" height="32" fill="transparent" rx="4"/>
+    <text x="12" y="260" fill="#ECF0F1">🔧 Advanced</text>
+  </g>
+  
+  <!-- 右侧设置内容区域 -->
+  <rect x="220" y="60" width="560" height="480" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 连接设置内容 -->
+  <text x="240" y="90" fill="#ECF0F1" font-family="Arial" font-size="16" font-weight="bold">🌐 Connection Settings</text>
+  
+  <!-- 监听端口设置 -->
+  <text x="240" y="120" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">Listening Port:</text>
+  <rect x="240" y="130" width="520" height="80" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <g transform="translate(252, 150)">
+    <rect x="0" y="0" width="80" height="24" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="40" y="16" fill="#ECF0F1" font-family="Arial" font-size="12" text-anchor="middle">6881</text>
+    
+    <rect x="100" y="0" width="16" height="16" fill="#27AE60" rx="2"/>
+    <text x="108" y="12" fill="white" font-family="Arial" font-size="12" text-anchor="middle">✓</text>
+    <text x="124" y="12" fill="#ECF0F1" font-family="Arial" font-size="12">Use random port</text>
+    
+    <rect x="100" y="24" width="16" height="16" fill="none" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="124" y="36" fill="#ECF0F1" font-family="Arial" font-size="12">Enable UPnP port mapping</text>
+    
+    <rect x="100" y="48" width="16" height="16" fill="none" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="124" y="60" fill="#ECF0F1" font-family="Arial" font-size="12">Enable NAT-PMP port mapping</text>
+  </g>
+  
+  <!-- 连接限制设置 -->
+  <text x="240" y="240" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">Connection Limits:</text>
+  <rect x="240" y="250" width="520" height="120" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <g transform="translate(252, 270)" font-family="Arial" font-size="12">
+    <text x="0" y="16" fill="#ECF0F1">Global max connections:</text>
+    <rect x="200" y="4" width="80" height="20" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="240" y="16" fill="#ECF0F1" text-anchor="middle">200</text>
+    
+    <text x="0" y="40" fill="#ECF0F1">Max connections per torrent:</text>
+    <rect x="200" y="28" width="80" height="20" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="240" y="40" fill="#ECF0F1" text-anchor="middle">50</text>
+    
+    <text x="0" y="64" fill="#ECF0F1">Max upload slots:</text>
+    <rect x="200" y="52" width="80" height="20" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="240" y="64" fill="#ECF0F1" text-anchor="middle">4</text>
+    
+    <text x="0" y="88" fill="#ECF0F1">Connection timeout:</text>
+    <rect x="200" y="76" width="80" height="20" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="240" y="88" fill="#ECF0F1" text-anchor="middle">30s</text>
+  </g>
+  
+  <!-- 代理设置 -->
+  <text x="240" y="400" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">🔒 Proxy Settings:</text>
+  <rect x="240" y="410" width="520" height="100" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <g transform="translate(252, 430)">
+    <rect x="0" y="0" width="16" height="16" fill="none" stroke="#7F8C8D" stroke-width="1" rx="2"/>
+    <text x="24" y="12" fill="#ECF0F1" font-family="Arial" font-size="12">Enable proxy server</text>
+    
+    <text x="0" y="32" fill="#BDC3C7" font-family="Arial" font-size="11">Proxy type:</text>
+    <rect x="80" y="20" width="100" height="20" fill="#7F8C8D" stroke="#95A5A6" stroke-width="1" rx="2"/>
+    <text x="130" y="32" fill="#BDC3C7" font-family="Arial" font-size="11" text-anchor="middle">SOCKS5 ▼</text>
+    
+    <text x="200" y="32" fill="#BDC3C7" font-family="Arial" font-size="11">Port:</text>
+    <rect x="240" y="20" width="60" height="20" fill="#7F8C8D" stroke="#95A5A6" stroke-width="1" rx="2"/>
+    <text x="270" y="32" fill="#BDC3C7" font-family="Arial" font-size="11" text-anchor="middle">1080</text>
+    
+    <text x="0" y="56" fill="#BDC3C7" font-family="Arial" font-size="11">Server:</text>
+    <rect x="50" y="44" width="120" height="20" fill="#7F8C8D" stroke="#95A5A6" stroke-width="1" rx="2"/>
+    <text x="110" y="56" fill="#BDC3C7" font-family="Arial" font-size="11" text-anchor="middle">127.0.0.1</text>
+    
+    <text x="180" y="56" fill="#BDC3C7" font-family="Arial" font-size="11">Password:</text>
+    <rect x="240" y="44" width="80" height="20" fill="#7F8C8D" stroke="#95A5A6" stroke-width="1" rx="2"/>
+    <text x="280" y="56" fill="#BDC3C7" font-family="Arial" font-size="11" text-anchor="middle">*******</text>
+  </g>
+  
+  <!-- 底部按钮 -->
+  <g transform="translate(500, 560)">
+    <rect x="0" y="0" width="80" height="32" fill="#95A5A6" rx="4"/>
+    <text x="40" y="20" fill="white" font-family="Arial" font-size="12" text-anchor="middle">Cancel</text>
+    
+    <rect x="90" y="0" width="80" height="32" fill="#3498DB" rx="4"/>
+    <text x="130" y="20" fill="white" font-family="Arial" font-size="12" text-anchor="middle">Apply</text>
+    
+    <rect x="180" y="0" width="80" height="32" fill="#27AE60" rx="4"/>
+    <text x="220" y="20" fill="white" font-family="Arial" font-size="12" text-anchor="middle">OK</text>
+  </g>
+</svg>

@@ -1,0 +1,149 @@
+<svg width="1000" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- 面板背景 -->
+  <rect width="1000" height="600" fill="#34495E" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 标题 -->
+  <text x="20" y="30" fill="#ECF0F1" font-family="Arial" font-size="16" font-weight="bold">👥 Peers Connection Status</text>
+  
+  <!-- 连接统计面板 -->
+  <text x="20" y="60" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">📊 Connection Statistics:</text>
+  <rect x="20" y="70" width="960" height="60" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <g transform="translate(32, 90)" font-family="Arial" font-size="12">
+    <text x="0" y="16" fill="#ECF0F1">Total: 45/50</text>
+    <text x="120" y="16" fill="#27AE60">🟢 Active: 32</text>
+    <text x="240" y="16" fill="#F39C12">🟡 Connecting: 8</text>
+    <text x="380" y="16" fill="#E74C3C">🔴 Failed: 5</text>
+    
+    <text x="0" y="36" fill="#ECF0F1">Upload Slots: 4/4</text>
+    <text x="120" y="36" fill="#3498DB">📤 Total Upload: 1.1 MB/s</text>
+    <text x="320" y="36" fill="#27AE60">📥 Total Download: 5.2 MB/s</text>
+  </g>
+  
+  <!-- 筛选和操作按钮 -->
+  <g transform="translate(20, 150)">
+    <text x="0" y="16" fill="#ECF0F1" font-family="Arial" font-size="12">🔍 Filter:</text>
+    
+    <rect x="60" y="0" width="80" height="24" fill="#3498DB" rx="4"/>
+    <text x="100" y="16" fill="white" font-family="Arial" font-size="11" text-anchor="middle">All ▼</text>
+    
+    <rect x="150" y="0" width="60" height="24" fill="#95A5A6" rx="4"/>
+    <text x="180" y="16" fill="white" font-family="Arial" font-size="11" text-anchor="middle">🔄 Refresh</text>
+    
+    <rect x="220" y="0" width="100" height="24" fill="#E74C3C" rx="4"/>
+    <text x="270" y="16" fill="white" font-family="Arial" font-size="11" text-anchor="middle">🚫 Disconnect</text>
+    
+    <rect x="330" y="0" width="100" height="24" fill="#8E44AD" rx="4"/>
+    <text x="380" y="16" fill="white" font-family="Arial" font-size="11" text-anchor="middle">⚫ Blacklist</text>
+  </g>
+  
+  <!-- Peers列表 -->
+  <rect x="20" y="190" width="960" height="300" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 表头 -->
+  <rect x="28" y="198" width="944" height="32" fill="#34495E"/>
+  <text x="40" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Status</text>
+  <text x="120" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">IP Address</text>
+  <text x="280" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Port</text>
+  <text x="340" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Client</text>
+  <text x="480" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">⬇️Download</text>
+  <text x="580" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">⬆️Upload</text>
+  <text x="680" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Progress</text>
+  <text x="780" y="218" fill="#ECF0F1" font-family="Arial" font-size="12" font-weight="bold">Location</text>
+  
+  <!-- Peer 1 -->
+  <rect x="28" y="230" width="944" height="32" fill="#3498DB" fill-opacity="0.2"/>
+  <circle cx="50" cy="246" r="6" fill="#27AE60"/>
+  <text x="120" y="250" fill="#ECF0F1" font-family="Arial" font-size="11">192.168.1.100</text>
+  <text x="280" y="250" fill="#ECF0F1" font-family="Arial" font-size="11">6881</text>
+  <text x="340" y="250" fill="#ECF0F1" font-family="Arial" font-size="11">qBittorrent</text>
+  <text x="480" y="250" fill="#27AE60" font-family="Arial" font-size="11">1.2MB/s</text>
+  <text x="580" y="250" fill="#3498DB" font-family="Arial" font-size="11">0.1MB/s</text>
+  <text x="680" y="250" fill="#ECF0F1" font-family="Arial" font-size="11">85%</text>
+  <text x="780" y="250" fill="#ECF0F1" font-family="Arial" font-size="11">🏠 Local</text>
+  
+  <!-- Peer 2 -->
+  <rect x="28" y="262" width="944" height="32" fill="#34495E"/>
+  <circle cx="50" cy="278" r="6" fill="#27AE60"/>
+  <text x="120" y="282" fill="#ECF0F1" font-family="Arial" font-size="11">203.0.113.45</text>
+  <text x="280" y="282" fill="#ECF0F1" font-family="Arial" font-size="11">51413</text>
+  <text x="340" y="282" fill="#ECF0F1" font-family="Arial" font-size="11">Transmission</text>
+  <text x="480" y="282" fill="#27AE60" font-family="Arial" font-size="11">0.8MB/s</text>
+  <text x="580" y="282" fill="#3498DB" font-family="Arial" font-size="11">0.2MB/s</text>
+  <text x="680" y="282" fill="#ECF0F1" font-family="Arial" font-size="11">92%</text>
+  <text x="780" y="282" fill="#ECF0F1" font-family="Arial" font-size="11">🌍 Internet</text>
+  
+  <!-- Peer 3 -->
+  <rect x="28" y="294" width="944" height="32" fill="#34495E"/>
+  <circle cx="50" cy="310" r="6" fill="#27AE60"/>
+  <text x="120" y="314" fill="#ECF0F1" font-family="Arial" font-size="11">198.51.100.123</text>
+  <text x="280" y="314" fill="#ECF0F1" font-family="Arial" font-size="11">6881</text>
+  <text x="340" y="314" fill="#ECF0F1" font-family="Arial" font-size="11">Deluge</text>
+  <text x="480" y="314" fill="#27AE60" font-family="Arial" font-size="11">2.1MB/s</text>
+  <text x="580" y="314" fill="#3498DB" font-family="Arial" font-size="11">0.0MB/s</text>
+  <text x="680" y="314" fill="#ECF0F1" font-family="Arial" font-size="11">78%</text>
+  <text x="780" y="314" fill="#ECF0F1" font-family="Arial" font-size="11">🌍 Internet</text>
+  
+  <!-- Peer 4 -->
+  <rect x="28" y="326" width="944" height="32" fill="#34495E"/>
+  <circle cx="50" cy="342" r="6" fill="#27AE60"/>
+  <text x="120" y="346" fill="#ECF0F1" font-family="Arial" font-size="11">10.0.0.50</text>
+  <text x="280" y="346" fill="#ECF0F1" font-family="Arial" font-size="11">8080</text>
+  <text x="340" y="346" fill="#ECF0F1" font-family="Arial" font-size="11">uTorrent</text>
+  <text x="480" y="346" fill="#27AE60" font-family="Arial" font-size="11">0.5MB/s</text>
+  <text x="580" y="346" fill="#3498DB" font-family="Arial" font-size="11">0.1MB/s</text>
+  <text x="680" y="346" fill="#ECF0F1" font-family="Arial" font-size="11">65%</text>
+  <text x="780" y="346" fill="#ECF0F1" font-family="Arial" font-size="11">🏠 Local</text>
+  
+  <!-- Peer 5 (连接中) -->
+  <rect x="28" y="358" width="944" height="32" fill="#34495E"/>
+  <circle cx="50" cy="374" r="6" fill="#F39C12"/>
+  <text x="120" y="378" fill="#ECF0F1" font-family="Arial" font-size="11">172.16.0.200</text>
+  <text x="280" y="378" fill="#ECF0F1" font-family="Arial" font-size="11">6881</text>
+  <text x="340" y="378" fill="#ECF0F1" font-family="Arial" font-size="11">BitComet</text>
+  <text x="480" y="378" fill="#7F8C8D" font-family="Arial" font-size="11">0.0MB/s</text>
+  <text x="580" y="378" fill="#7F8C8D" font-family="Arial" font-size="11">0.0MB/s</text>
+  <text x="680" y="378" fill="#ECF0F1" font-family="Arial" font-size="11">0%</text>
+  <text x="780" y="378" fill="#ECF0F1" font-family="Arial" font-size="11">🌍 Internet</text>
+  
+  <!-- Peer 6 (失败) -->
+  <rect x="28" y="390" width="944" height="32" fill="#34495E"/>
+  <circle cx="50" cy="406" r="6" fill="#E74C3C"/>
+  <text x="120" y="410" fill="#7F8C8D" font-family="Arial" font-size="11">203.0.113.100</text>
+  <text x="280" y="410" fill="#7F8C8D" font-family="Arial" font-size="11">6881</text>
+  <text x="340" y="410" fill="#7F8C8D" font-family="Arial" font-size="11">Unknown</text>
+  <text x="480" y="410" fill="#7F8C8D" font-family="Arial" font-size="11">0.0MB/s</text>
+  <text x="580" y="410" fill="#7F8C8D" font-family="Arial" font-size="11">0.0MB/s</text>
+  <text x="680" y="410" fill="#7F8C8D" font-family="Arial" font-size="11">0%</text>
+  <text x="780" y="410" fill="#E74C3C" font-family="Arial" font-size="11">❌ Blocked</text>
+  
+  <!-- 图例 -->
+  <text x="20" y="520" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">📍 Legend:</text>
+  <g transform="translate(20, 530)" font-family="Arial" font-size="12">
+    <circle cx="8" cy="8" r="6" fill="#27AE60"/>
+    <text x="20" y="12" fill="#ECF0F1">🟢 Connected</text>
+    
+    <circle cx="120" cy="8" r="6" fill="#F39C12"/>
+    <text x="132" y="12" fill="#ECF0F1">🟡 Connecting</text>
+    
+    <circle cx="240" cy="8" r="6" fill="#E74C3C"/>
+    <text x="252" y="12" fill="#ECF0F1">🔴 Failed</text>
+    
+    <text x="340" y="12" fill="#ECF0F1">🏠 Local Network</text>
+    
+    <text x="480" y="12" fill="#ECF0F1">🌍 Internet</text>
+    
+    <text x="580" y="12" fill="#ECF0F1">❌ Blocked</text>
+  </g>
+  
+  <!-- 地理分布 -->
+  <text x="20" y="570" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">🌍 Geographic Distribution: (Based on IP Address)</text>
+  <rect x="20" y="580" width="960" height="20" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  <g transform="translate(32, 595)" font-family="Arial" font-size="11">
+    <text x="0" y="0" fill="#ECF0F1">🇨🇳 China: 15</text>
+    <text x="120" y="0" fill="#ECF0F1">🇺🇸 USA: 12</text>
+    <text x="220" y="0" fill="#ECF0F1">🇩🇪 Germany: 8</text>
+    <text x="340" y="0" fill="#ECF0F1">🇯🇵 Japan: 6</text>
+    <text x="460" y="0" fill="#ECF0F1">Others: 4</text>
+  </g>
+</svg>

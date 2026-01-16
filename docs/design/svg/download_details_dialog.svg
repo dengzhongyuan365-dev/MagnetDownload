@@ -1,0 +1,188 @@
+<svg width="1000" height="800" xmlns="http://www.w3.org/2000/svg">
+  <!-- 对话框背景 -->
+  <rect width="1000" height="800" fill="#34495E" stroke="#7F8C8D" stroke-width="2" rx="8"/>
+  
+  <!-- 标题栏 -->
+  <rect x="0" y="0" width="1000" height="40" fill="#2C3E50" rx="8"/>
+  <rect x="0" y="32" width="1000" height="8" fill="#2C3E50"/>
+  <text x="20" y="26" fill="#ECF0F1" font-family="Arial" font-size="16" font-weight="bold">📊 Ubuntu 22.04.3 Desktop - Download Details</text>
+  <rect x="960" y="8" width="24" height="24" fill="#E74C3C" rx="4"/>
+  <text x="972" y="24" fill="white" font-family="Arial" font-size="14" text-anchor="middle">✕</text>
+  
+  <!-- 标签页导航 -->
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="100" height="32" fill="#3498DB" rx="4"/>
+    <text x="50" y="20" fill="white" font-family="Arial" font-size="12" text-anchor="middle">📋 General</text>
+    
+    <rect x="108" y="0" width="80" height="32" fill="#2C3E50" rx="4"/>
+    <text x="148" y="20" fill="#ECF0F1" font-family="Arial" font-size="12" text-anchor="middle">📁 Files</text>
+    
+    <rect x="196" y="0" width="80" height="32" fill="#2C3E50" rx="4"/>
+    <text x="236" y="20" fill="#ECF0F1" font-family="Arial" font-size="12" text-anchor="middle">👥 Peers</text>
+    
+    <rect x="284" y="0" width="80" height="32" fill="#2C3E50" rx="4"/>
+    <text x="324" y="20" fill="#ECF0F1" font-family="Arial" font-size="12" text-anchor="middle">📊 Stats</text>
+    
+    <rect x="372" y="0" width="80" height="32" fill="#2C3E50" rx="4"/>
+    <text x="412" y="20" fill="#ECF0F1" font-family="Arial" font-size="12" text-anchor="middle">⚙️ Options</text>
+    
+    <rect x="460" y="0" width="80" height="32" fill="#2C3E50" rx="4"/>
+    <text x="500" y="20" fill="#ECF0F1" font-family="Arial" font-size="12" text-anchor="middle">📝 Log</text>
+  </g>
+  
+  <!-- 进度概览面板 -->
+  <text x="20" y="110" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">📊 Progress Overview:</text>
+  <rect x="20" y="120" width="960" height="100" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 主进度条 -->
+  <rect x="40" y="140" width="920" height="24" fill="#7F8C8D" rx="12"/>
+  <rect x="40" y="140" width="740" height="24" fill="#27AE60" rx="12"/>
+  <text x="500" y="156" fill="white" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">80.5% (3.78 GB / 4.70 GB)</text>
+  
+  <!-- 速度和状态信息 -->
+  <g transform="translate(40, 180)" font-family="Arial" font-size="12">
+    <text x="0" y="16" fill="#27AE60">⬇️ Download: 5.2 MB/s</text>
+    <text x="200" y="16" fill="#3498DB">⬆️ Upload: 1.1 MB/s</text>
+    <text x="400" y="16" fill="#F39C12">⏱️ ETA: 3m 12s</text>
+    <text x="600" y="16" fill="#ECF0F1">👥 Peers: 32/50</text>
+    <text x="800" y="16" fill="#E74C3C">🔥 Active: 28</text>
+  </g>
+  
+  <!-- 文件进度面板 -->
+  <text x="20" y="250" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">📁 File Progress:</text>
+  <rect x="20" y="260" width="960" height="140" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 文件进度表头 -->
+  <rect x="28" y="268" width="944" height="28" fill="#34495E"/>
+  <text x="40" y="286" fill="#ECF0F1" font-family="Arial" font-size="11" font-weight="bold">File Name</text>
+  <text x="400" y="286" fill="#ECF0F1" font-family="Arial" font-size="11" font-weight="bold">Progress</text>
+  <text x="600" y="286" fill="#ECF0F1" font-family="Arial" font-size="11" font-weight="bold">Size</text>
+  <text x="720" y="286" fill="#ECF0F1" font-family="Arial" font-size="11" font-weight="bold">Priority</text>
+  <text x="820" y="286" fill="#ECF0F1" font-family="Arial" font-size="11" font-weight="bold">Status</text>
+  
+  <!-- 文件1 -->
+  <rect x="28" y="296" width="944" height="32" fill="#3498DB" fill-opacity="0.2"/>
+  <text x="40" y="316" fill="#ECF0F1" font-family="Arial" font-size="11">📀 ubuntu-22.04.3-desktop-amd64.iso</text>
+  <rect x="400" y="304" width="150" height="16" fill="#7F8C8D" rx="8"/>
+  <rect x="400" y="304" width="120" height="16" fill="#27AE60" rx="8"/>
+  <text x="475" y="314" fill="white" font-family="Arial" font-size="9" text-anchor="middle">80.5%</text>
+  <text x="600" y="316" fill="#ECF0F1" font-family="Arial" font-size="11">4.7 GB</text>
+  <text x="720" y="316" fill="#E74C3C" font-family="Arial" font-size="11">High</text>
+  <text x="820" y="316" fill="#27AE60" font-family="Arial" font-size="11">Downloading</text>
+  
+  <!-- 文件2 -->
+  <rect x="28" y="328" width="944" height="32" fill="#34495E"/>
+  <text x="40" y="348" fill="#ECF0F1" font-family="Arial" font-size="11">📄 README.txt</text>
+  <rect x="400" y="336" width="150" height="16" fill="#27AE60" rx="8"/>
+  <text x="475" y="346" fill="white" font-family="Arial" font-size="9" text-anchor="middle">100%</text>
+  <text x="600" y="348" fill="#ECF0F1" font-family="Arial" font-size="11">2.1 KB</text>
+  <text x="720" y="348" fill="#F39C12" font-family="Arial" font-size="11">Normal</text>
+  <text x="820" y="348" fill="#27AE60" font-family="Arial" font-size="11">Complete</text>
+  
+  <!-- 文件3 -->
+  <rect x="28" y="360" width="944" height="32" fill="#34495E"/>
+  <text x="40" y="380" fill="#ECF0F1" font-family="Arial" font-size="11">📄 CHECKSUM.md5</text>
+  <rect x="400" y="368" width="150" height="16" fill="#7F8C8D" rx="8"/>
+  <text x="475" y="378" fill="white" font-family="Arial" font-size="9" text-anchor="middle">0%</text>
+  <text x="600" y="380" fill="#ECF0F1" font-family="Arial" font-size="11">156 B</text>
+  <text x="720" y="380" fill="#3498DB" font-family="Arial" font-size="11">Low</text>
+  <text x="820" y="380" fill="#95A5A6" font-family="Arial" font-size="11">Skipped</text>
+  
+  <!-- 分片地图 -->
+  <text x="20" y="430" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">🎯 Piece Map: (each block represents a piece)</text>
+  <rect x="20" y="440" width="960" height="120" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 分片可视化 -->
+  <g transform="translate(40, 460)">
+    <!-- 第一行分片 -->
+    <g transform="translate(0, 0)">
+      <!-- 已完成的分片 (蓝色) -->
+      <rect x="0" y="0" width="800" height="12" fill="#3498DB"/>
+      <!-- 下载中的分片 (黄色) -->
+      <rect x="800" y="0" width="60" height="12" fill="#F39C12"/>
+      <!-- 未开始的分片 (灰色) -->
+      <rect x="860" y="0" width="80" height="12" fill="#7F8C8D"/>
+    </g>
+    
+    <!-- 重复几行显示更多分片 -->
+    <g transform="translate(0, 16)">
+      <rect x="0" y="0" width="820" height="12" fill="#3498DB"/>
+      <rect x="820" y="0" width="40" height="12" fill="#F39C12"/>
+      <rect x="860" y="0" width="80" height="12" fill="#7F8C8D"/>
+    </g>
+    
+    <g transform="translate(0, 32)">
+      <rect x="0" y="0" width="780" height="12" fill="#3498DB"/>
+      <rect x="780" y="0" width="80" height="12" fill="#F39C12"/>
+      <rect x="860" y="0" width="80" height="12" fill="#7F8C8D"/>
+    </g>
+    
+    <!-- 图例 -->
+    <g transform="translate(0, 60)" font-family="Arial" font-size="11">
+      <rect x="0" y="0" width="16" height="12" fill="#3498DB"/>
+      <text x="24" y="10" fill="#ECF0F1">🟦 Complete</text>
+      
+      <rect x="120" y="0" width="16" height="12" fill="#F39C12"/>
+      <text x="144" y="10" fill="#ECF0F1">🟨 Downloading</text>
+      
+      <rect x="260" y="0" width="16" height="12" fill="#27AE60"/>
+      <text x="284" y="10" fill="#ECF0F1">🟩 Verified</text>
+      
+      <rect x="380" y="0" width="16" height="12" fill="#7F8C8D"/>
+      <text x="404" y="10" fill="#ECF0F1">⬜ Pending</text>
+      
+      <rect x="500" y="0" width="16" height="12" fill="#E74C3C"/>
+      <text x="524" y="10" fill="#ECF0F1">🟥 Error</text>
+    </g>
+  </g>
+  
+  <!-- 速度图表 -->
+  <text x="20" y="590" fill="#ECF0F1" font-family="Arial" font-size="14" font-weight="bold">📈 Speed Chart: (Last 10 minutes)</text>
+  <rect x="20" y="600" width="960" height="160" fill="#2C3E50" stroke="#7F8C8D" stroke-width="1" rx="4"/>
+  
+  <!-- 图表坐标轴 -->
+  <g transform="translate(60, 620)" stroke="#7F8C8D" stroke-width="1">
+    <!-- Y轴 -->
+    <line x1="0" y1="0" x2="0" y2="120"/>
+    <!-- X轴 -->
+    <line x1="0" y1="120" x2="880" y2="120"/>
+    
+    <!-- Y轴刻度 -->
+    <g font-family="Arial" font-size="10" fill="#BDC3C7">
+      <text x="-10" y="5" text-anchor="end">6MB/s</text>
+      <text x="-10" y="25" text-anchor="end">5MB/s</text>
+      <text x="-10" y="45" text-anchor="end">4MB/s</text>
+      <text x="-10" y="65" text-anchor="end">3MB/s</text>
+      <text x="-10" y="85" text-anchor="end">2MB/s</text>
+      <text x="-10" y="105" text-anchor="end">1MB/s</text>
+      <text x="-10" y="125" text-anchor="end">0MB/s</text>
+    </g>
+    
+    <!-- X轴刻度 -->
+    <g font-family="Arial" font-size="10" fill="#BDC3C7">
+      <text x="0" y="135" text-anchor="middle">0</text>
+      <text x="146" y="135" text-anchor="middle">2</text>
+      <text x="293" y="135" text-anchor="middle">4</text>
+      <text x="440" y="135" text-anchor="middle">6</text>
+      <text x="586" y="135" text-anchor="middle">8</text>
+      <text x="733" y="135" text-anchor="middle">10</text>
+    </g>
+    
+    <!-- 下载速度曲线 (绿色) -->
+    <polyline points="0,120 73,100 146,80 220,60 293,50 366,45 440,40 513,35 586,45 660,55 733,65 806,75 880,85" 
+              fill="none" stroke="#27AE60" stroke-width="2"/>
+    
+    <!-- 上传速度曲线 (蓝色) -->
+    <polyline points="0,120 73,110 146,105 220,100 293,95 366,90 440,85 513,80 586,85 660,90 733,95 806,100 880,105" 
+              fill="none" stroke="#3498DB" stroke-width="2"/>
+  </g>
+  
+  <!-- 图表图例 -->
+  <g transform="translate(100, 740)" font-family="Arial" font-size="12">
+    <line x1="0" y1="8" x2="20" y2="8" stroke="#27AE60" stroke-width="2"/>
+    <text x="28" y="12" fill="#ECF0F1">⬇️ Download Speed</text>
+    
+    <line x1="200" y1="8" x2="220" y2="8" stroke="#3498DB" stroke-width="2"/>
+    <text x="228" y="12" fill="#ECF0F1">⬆️ Upload Speed</text>
+  </g>
+</svg>
